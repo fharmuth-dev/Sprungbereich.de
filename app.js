@@ -1,36 +1,35 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // GSAP Animation: Männchen federt auf dem Brett ein paar Mal und springt dann ins Wasser
   if (typeof gsap !== "undefined") {
     const tl = gsap.timeline({
-      delay: 0.2
+      delay: 0.3
     });
 
-    // 1. Federn / Wippen auf dem Sprungbrett (2x hoch und runter)
+    // 1. Flüssiges Wippen direkt vorne am Brett (wiederholt sich 2x)
     tl.to("#diverGroup", {
-      duration: 0.3,
-      y: 120, // Einsinken/Feder
-      repeat: 2,
+      duration: 0.25,
+      y: 118, // Federt leicht nach unten
+      repeat: 3,
       yoyo: true,
       ease: "power1.inOut"
     })
-    // 2. Abflug / Sprung nach oben und rechts ins Wasser
+    // 2. Der eigentliche Kopfsprung nach vorne ins Wasser
     .to("#diverGroup", {
-      duration: 0.5,
-      x: 35,
-      y: 60,
-      rotation: 70,
+      duration: 0.45,
+      x: 40,
+      y: 55,
+      rotation: 75,
       ease: "power2.in"
     })
-    // 3. Eintauchen (kleiner werden / ausblenden)
+    // 3. Eintauchen (kleiner werden & wegblenden)
     .to("#diverGroup", {
-      duration: 0.3,
-      scale: 0.2,
+      duration: 0.25,
+      scale: 0.1,
       opacity: 0,
       ease: "power1.in"
     })
-    // 4. Ganzes Splash-Screen Overlay nach oben wegschieben
+    // 4. Splash Screen nach oben wegfahren
     .to("#splashScreen", {
-      duration: 0.7,
+      duration: 0.6,
       y: "-100%",
       opacity: 0,
       ease: "power3.inOut",
@@ -45,9 +44,8 @@ document.addEventListener("DOMContentLoaded", () => {
       y: -40,
       opacity: 0,
       ease: "power2.out"
-    }, "-=0.3");
+    }, "-=0.2");
   } else {
-    // Fallback falls GSAP nicht lädt
     setTimeout(() => {
       const splash = document.getElementById("splashScreen");
       if (splash) splash.style.display = "none";
