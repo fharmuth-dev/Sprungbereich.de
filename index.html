@@ -18,18 +18,17 @@
   <!-- Loading / Splash Screen mit animierter SVG-Sprungszene -->
   <div id="splashScreen" class="splash-screen">
     <div class="splash-content">
-      <!-- SVG Animation: Sprungbrett & Figur -->
       <svg class="diver-animation" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
         <!-- Wellen / Wasser unten -->
         <path class="wave wave1" d="M0,160 Q50,150 100,160 T200,160 L200,200 L0,200 Z" />
         <path class="wave wave2" d="M0,170 Q50,160 100,170 T200,170 L200,200 L0,200 Z" />
 
         <!-- Sprungbrett -->
-        <path d="M40,140 L130,125" stroke="#00f2fe" stroke-width="6" stroke-linecap="round" />
-        <rect x="125" y="125" width="10" height="35" fill="#233554" rx="3" />
+        <path d="M40,140 L135,122" stroke="#00f2fe" stroke-width="6" stroke-linecap="round" />
+        <rect x="130" y="122" width="10" height="38" fill="#233554" rx="3" />
 
-        <!-- Strichmännchen / Diver (Wird via GSAP animiert) -->
-        <g id="diverGroup" transform="translate(110, 115)">
+        <!-- Strichmännchen / Diver (Weiter vorne am Brett: x=122, y=112) -->
+        <g id="diverGroup" transform="translate(122, 112)">
           <!-- Kopf -->
           <circle cx="0" cy="-15" r="7" fill="#ffffff" />
           <!-- Körper -->
