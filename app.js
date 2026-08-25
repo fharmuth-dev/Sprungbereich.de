@@ -1,3 +1,14 @@
+// GSAP Intro Animation
+window.addEventListener('load', () => {
+  const tl = gsap.timeline();
+  tl.to('.splash-title', { duration: 0.8, opacity: 1, y: 0 })
+    .to('.splash-slogan', { duration: 0.6, opacity: 1, y: 0 })
+    .to('#splashScreen', { duration: 0.8, opacity: 0, delay: 1.5, onComplete: () => {
+        document.getElementById('splashScreen').style.display = 'none';
+    }})
+    .from('#topOverlay', { duration: 0.6, y: -50, opacity: 0 });
+});
+
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js');
