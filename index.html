@@ -9,12 +9,24 @@
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0a192f">
+
+  <!-- GSAP CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 </head>
 <body>
 
+  <!-- Loading / Splash Screen Overlay -->
+  <div id="splashScreen" class="splash-screen">
+    <div class="splash-content">
+      <h1 class="splash-title">Sprungbereich<span>.de</span></h1>
+      <p class="splash-slogan">Deine Community-Plattform für Sprungtürme & Absprungzonen</p>
+      <div class="splash-loader"></div>
+    </div>
+  </div>
+
   <div id="map"></div>
 
-  <header class="top-overlay">
+  <header class="top-overlay" id="topOverlay">
     <div class="logo-area">
       <h1 class="site-title">Sprungbereich<span>.de</span></h1>
       <p class="tagline">Finde deine Absprungzone</p>
@@ -23,7 +35,8 @@
     <div class="search-box">
       <div class="input-group">
         <input type="text" id="searchInput" placeholder="Ort oder PLZ eingeben...">
-        <button id="locateBtn" title="Standort verwenden">📍</button>
+        <button id="searchBtn" class="btn-primary" title="Suchen">🔍 Los</button>
+        <button id="locateBtn" class="btn-secondary" title="Standort verwenden">📍</button>
       </div>
 
       <div class="filter-row">
@@ -42,6 +55,13 @@
           <option value="See">See / Natur</option>
         </select>
       </div>
+
+      <div class="toggle-row">
+        <label class="switch-label">
+          <input type="checkbox" id="verifiedOnlyToggle">
+          <span>Nur von Community bestätigte Spots</span>
+        </label>
+      </div>
     </div>
   </header>
 
@@ -50,10 +70,17 @@
   <div id="bottomSheet" class="bottom-sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-content">
-      <h2 id="poolTitle">Bad Name</h2>
+      <div class="sheet-header">
+        <h2 id="poolTitle">Bad Name</h2>
+        <span id="verifiedBadge" class="badge-status">Unbestätigt</span>
+      </div>
       <p id="poolType" class="badge">Freibad</p>
       <div id="poolDetails" class="pool-details"></div>
-      <a id="navBtn" href="#" target="_blank" class="nav-btn">🧭 Route planen (Google Maps)</a>
+      
+      <div class="action-buttons">
+        <a id="navBtn" href="#" target="_blank" class="nav-btn">🧭 Route (Google Maps)</a>
+        <a id="editBtn" href="eintragen.html" class="edit-btn">✏️ Daten ergänzen</a>
+      </div>
     </div>
   </div>
 
