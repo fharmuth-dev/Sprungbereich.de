@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Absprungzone eintragen - Sprungbereich.de</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="page-body">
+
+  <div class="container">
+    <a href="index.html" class="back-link">← Zurück zur Karte</a>
+    
+    <h2>Neue Absprungzone melden</h2>
+    <p class="subtitle">Hilf der Community und trage ein Bad mit Sprungbereich ein.</p>
+
+    <form id="addPoolForm" class="add-form">
+      <div class="form-group">
+        <label for="name">Name des Bades *</label>
+        <input type="text" id="name" required placeholder="z. B. Freibad West">
+      </div>
+
+      <div class="form-group">
+        <label for="location">Ort / Adresse *</label>
+        <input type="text" id="location" required placeholder="Musterstraße 1, 12345 Musterstadt">
+      </div>
+
+      <div class="form-group">
+        <label for="type">Bäder-Typ</label>
+        <select id="type">
+          <option value="Freibad">Freibad</option>
+          <option value="Hallenbad">Hallenbad</option>
+          <option value="See">See / Naturbad</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Vorhandene Sprungmöglichkeiten:</label>
+        <div class="checkbox-grid">
+          <label><input type="checkbox" name="jumps" value="1m"> 1m Brett/Block</label>
+          <label><input type="checkbox" name="jumps" value="3m"> 3m Brett/Plattform</label>
+          <label><input type="checkbox" name="jumps" value="5m"> 5m Turm</label>
+          <label><input type="checkbox" name="jumps" value="7.5m"> 7.5m Turm</label>
+          <label><input type="checkbox" name="jumps" value="10m"> 10m Turm</label>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="notes">Besonderheiten / Anmerkungen</label>
+        <textarea id="notes" rows="3" placeholder="z. B. 10m Turm nur am Wochenende geöffnet..."></textarea>
+      </div>
+
+      <button type="submit" class="submit-btn">Absprungzone Einreichen</button>
+    </form>
+  </div>
+
+  <script>
+    document.getElementById('addPoolForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      alert('Vielen Dank! Deine Einreichung wird geprüft und in Kürze hinzugefügt.');
+      window.location.href = 'index.html';
+    });
+  </script>
+</body>
+</html>
