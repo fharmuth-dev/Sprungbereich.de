@@ -1,7 +1,6 @@
 let map;
 let markersGroup;
 
-// Koordinaten-Zentren für die Länder
 const countryCoordinates = {
   de: { lat: 51.1657, lng: 10.4515, zoom: 6 },
   at: { lat: 47.5162, lng: 14.5501, zoom: 7 },
@@ -11,13 +10,9 @@ const countryCoordinates = {
   es: { lat: 40.4637, lng: -3.7492, zoom: 6 }
 };
 
-// Map initialisieren
 document.addEventListener("DOMContentLoaded", () => {
-  map = L.map("map", {
-    zoomControl: false
-  }).setView([51.1657, 10.4515], 6);
+  map = L.map("map", { zoomControl: false }).setView([51.1657, 10.4515], 6);
 
-  // Dark-Mode Kartendesign (CartoDB Dark Matter)
   L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
     attribution: '&copy; OpenStreetMap &copy; CARTO',
     subdomains: 'abcd',
@@ -25,35 +20,42 @@ document.addEventListener("DOMContentLoaded", () => {
   }).addTo(map);
 
   markersGroup = L.layerGroup().addTo(map);
-
-  // Zoom-Knöpfe unten rechts platzieren
   L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+  // Automatisch Spots nachladen, sobald der Nutzer die Karte bewegt oder zoomt
+  map.on("moveend", () => {
+    fetchSpotsForBounds();
+  });
 });
 
-// 1. Funktion: Wird aufgerufen, wenn im Splash-Screen ein Land gewählt wird
 window.initMapForCountry = function(countryCode) {
   const config = countryCoordinates[countryCode] || countryCoordinates["de"];
   map.setView([config.lat, config.lng], config.zoom);
   
-  // Lädt automatisch alle Bäder & Spots für diese Region
-  fetchSpotsForBounds();
+  // Kurze Verzögerung, damit Leaflet die Bounding Box sicher berechnet hat
+  setTimeout(fetchSpotsForBounds, 300);
 };
 
-// 2. Funktion: Holt echte Bäder-Daten via Overpass API
+// Fragt echte Bäder, Freibäder, Hallenbäder und Wasserparks ab
 function fetchSpotsForBounds() {
+  if (!map) return;
+  
   const bounds = map.getBounds();
   const bbox = `${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()}`;
 
-  // Overpass Turbo Query: Sucht nach Public Swimbädern, Waterparks & Freibädern
+  // Breitere Overpass-Abfrage nach Bädern jeglicher Art
   const query = `
-    [out:json][timeout:15];
+    [out:json][timeout:25];
     (
+      node["leisure"="swimming_pool"](${bbox});
+      way["leisure"="swimming_pool"](${bbox});
       node["leisure"="water_park"](${bbox});
       way["leisure"="water_park"](${bbox});
       node["sport"="swimming"](${bbox});
       way["sport"="swimming"](${bbox});
+      node["amenity"="public_bath"](${bbox});
     );
-    out center 60;
+    out center 100;
   `;
 
   const url = "https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(query);
@@ -68,13 +70,12 @@ function fetchSpotsForBounds() {
       data.elements.forEach(item => {
         const lat = item.lat || (item.center && item.center.lat);
         const lng = item.lon || (item.center && item.center.lon);
-        const name = item.tags.name || "Schwimmbad / Sprungspot";
-        const type = item.tags.leisure === "water_park" ? "Erlebnisbad" : "Freibad / Hallenbad";
+        const name = item.tags ? (item.tags.name || "Schwimmbad / Sprungspot") : "Schwimmbad / Sprungspot";
+        const type = item.tags && item.tags.leisure === "water_park" ? "Erlebnisbad" : "Freibad / Hallenbad";
 
         if (lat && lng) {
-          // Erstelle Custom Marker Icons
           const marker = L.circleMarker([lat, lng], {
-            radius: 7,
+            radius: 8,
             fillColor: "#00f2fe",
             color: "#ffffff",
             weight: 2,
@@ -82,7 +83,6 @@ function fetchSpotsForBounds() {
             fillOpacity: 0.9
           });
 
-          // Klick-Event öffnet Bottom Sheet mit Details
           marker.on("click", () => {
             showBottomSheet(name, type, lat, lng);
           });
@@ -94,7 +94,7 @@ function fetchSpotsForBounds() {
     .catch(err => console.error("Fehler beim Laden der Spots:", err));
 }
 
-// 3. Funktion: Suche nach PLZ oder Stadt (Nominatim Geocoding)
+// Sucheingabe verarbeiten und direkt anspringen
 window.searchLocationWithFilters = function(query, country, height, type) {
   const searchUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=${country}`;
 
@@ -106,11 +106,10 @@ window.searchLocationWithFilters = function(query, country, height, type) {
         const lat = parseFloat(first.lat);
         const lon = parseFloat(first.lon);
 
-        // Zoom direkt auf die gesuchte Stadt / PLZ
-        map.setView([lat, lon], 12);
-
-        // Neue Spots für den Kartenausschnitt nachladen
-        setTimeout(fetchSpotsForBounds, 500);
+        // Zoom direkt auf den Standort (Zoomlevel 13 für Städte & PLZ)
+        map.setView([lat, lon], 13);
+        
+        // Durch moveend wird fetchSpotsForBounds() automatisch ausgelöst!
       } else {
         alert("Ort oder PLZ nicht gefunden. Bitte Eingabe prüfen.");
       }
@@ -118,7 +117,6 @@ window.searchLocationWithFilters = function(query, country, height, type) {
     .catch(err => console.error("Suchfehler:", err));
 };
 
-// Details in Bottom Sheet anzeigen
 function showBottomSheet(name, type, lat, lng) {
   const sheet = document.getElementById("bottomSheet");
   const title = document.getElementById("poolTitle");
