@@ -62,16 +62,35 @@ body, html {
   50% { transform: translateY(-7px); }
 }
 
-/* CSS-Animation für den Springer: 3x Einfedern, 2x Vorwärtsdrehung, Kopfsprung */
+/* Sprungbrett federt um den Mast-Befestigungspunkt, synchron zum Springer */
+#boardGroup {
+  animation: boardFlex 2.6s infinite ease-in-out;
+  transform-origin: 135px 122px;
+}
+
+@keyframes boardFlex {
+  0%   { transform: rotate(0deg); }
+  8%   { transform: rotate(-4deg); }    /* 1. Einfedern - Brettspitze geht runter */
+  16%  { transform: rotate(2deg); }     /* federt hoch */
+  24%  { transform: rotate(-4.5deg); }  /* 2. Einfedern */
+  32%  { transform: rotate(2deg); }     /* federt hoch */
+  40%  { transform: rotate(-5deg); }    /* 3. Einfedern - tiefster Punkt */
+  50%  { transform: rotate(3deg); }     /* Brett schnellt hoch, Springer stößt sich ab */
+  60%  { transform: rotate(-1deg); }    /* Nachschwingen */
+  70%, 100% { transform: rotate(0deg); } /* Brett kommt zur Ruhe */
+}
+
+/* Springer: 3x einfedern auf der Brettspitze, dann Absprung nach links-oben,
+   2x Drehung in der Luft, Kopfsprung ins Wasser */
 #diverGroup {
   animation: diverJump 2.6s infinite ease-in-out;
-  transform-origin: 122px 122px;
+  transform-origin: 40px 123px;
 }
 
 @keyframes diverJump {
   0%   { transform: translateY(0) rotate(0deg); }
 
-  /* 1. Einfedern */
+  /* 1. Einfedern (bewegt sich mit der Brettspitze) */
   8%   { transform: translateY(7px) rotate(0deg); }
   16%  { transform: translateY(-4px) rotate(0deg); }
 
@@ -82,18 +101,18 @@ body, html {
   /* 3. Einfedern (tiefster Absprungimpuls) */
   40%  { transform: translateY(9px) rotate(0deg); }
 
-  /* Absprung vom Brett */
-  50%  { transform: translateY(-18px) rotate(0deg); }
+  /* Absprung: weg vom Brett, nach links oben */
+  50%  { transform: translate(-10px, -15px) rotate(0deg); }
 
-  /* 1. Vorwärtsrotation */
-  65%  { transform: translate(15px, -6px) rotate(360deg); }
+  /* 1. Vorwärtsrotation, weiter nach links */
+  65%  { transform: translate(-25px, -8px) rotate(360deg); }
 
-  /* 2. Vorwärtsrotation abgeschlossen */
-  80%  { transform: translate(30px, 18px) rotate(720deg); }
+  /* 2. Vorwärtsrotation abgeschlossen, sinkt Richtung Wasser */
+  80%  { transform: translate(-16px, 16px) rotate(720deg); }
 
   /* Ausrichtung zum Kopfsprung + Eintauchen */
-  90%  { transform: translate(40px, 34px) rotate(810deg); opacity: 1; }
-  100% { transform: translate(48px, 46px) rotate(810deg) scale(0.15); opacity: 0; }
+  90%  { transform: translate(-9px, 32px) rotate(810deg); opacity: 1; }
+  100% { transform: translate(-5px, 44px) rotate(810deg) scale(0.15); opacity: 0; }
 }
 
 .splash-title {
