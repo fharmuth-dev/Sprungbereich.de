@@ -23,22 +23,26 @@
         <path class="wave wave1" d="M0,155 Q50,140 100,155 T200,155 L200,200 L0,200 Z" />
         <path class="wave wave2" d="M0,165 Q50,150 100,165 T200,165 L200,200 L0,200 Z" />
 
-        <!-- Sprungbrett -->
-        <path d="M40,140 L135,122" stroke="#00f2fe" stroke-width="6" stroke-linecap="round" />
+        <!-- Sprungbrett: eigene Gruppe, damit es um den Mast-Befestigungspunkt federn kann -->
+        <g id="boardGroup">
+          <path d="M40,140 L135,122" stroke="#00f2fe" stroke-width="6" stroke-linecap="round" />
+        </g>
+
+        <!-- Mast/Halterung bleibt fix, federt nicht mit -->
         <rect x="130" y="122" width="10" height="38" fill="#172a45" rx="3" />
 
-        <!-- Strichmännchen / Diver (steht vorne am Brett) -->
+        <!-- Strichmännchen / Diver: steht vorne LINKS an der Brettspitze -->
         <g id="diverGroup">
           <!-- Kopf -->
-          <circle cx="122" cy="97" r="7" fill="#ffffff" />
+          <circle cx="40" cy="98" r="7" fill="#ffffff" />
           <!-- Körper -->
-          <line x1="122" y1="104" x2="122" y2="122" stroke="#ffffff" stroke-width="4" stroke-linecap="round" />
+          <line x1="40" y1="105" x2="40" y2="123" stroke="#ffffff" stroke-width="4" stroke-linecap="round" />
           <!-- Arme -->
-          <line x1="122" y1="110" x2="110" y2="117" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
-          <line x1="122" y1="110" x2="132" y2="102" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
+          <line x1="40" y1="111" x2="28" y2="118" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
+          <line x1="40" y1="111" x2="50" y2="103" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
           <!-- Beine -->
-          <line x1="122" y1="122" x2="114" y2="137" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
-          <line x1="122" y1="122" x2="130" y2="137" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
+          <line x1="40" y1="123" x2="32" y2="138" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
+          <line x1="40" y1="123" x2="48" y2="138" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
         </g>
       </svg>
 
