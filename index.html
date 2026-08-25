@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Sprungbereich.de - Die Absprungzonen-Map</title>
+  
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0a192f">
+</head>
+<body>
+
+  <div id="map"></div>
+
+  <header class="top-overlay">
+    <div class="logo-area">
+      <h1 class="site-title">Sprungbereich<span>.de</span></h1>
+      <p class="tagline">Finde deine Absprungzone</p>
+    </div>
+
+    <div class="search-box">
+      <div class="input-group">
+        <input type="text" id="searchInput" placeholder="Ort oder PLZ eingeben...">
+        <button id="locateBtn" title="Standort verwenden">📍</button>
+      </div>
+
+      <div class="filter-row">
+        <select id="heightFilter">
+          <option value="0">Alle Höhen</option>
+          <option value="3">Ab 3m</option>
+          <option value="5">Ab 5m</option>
+          <option value="7.5">Ab 7.5m</option>
+          <option value="10">Nur 10m Turm</option>
+        </select>
+
+        <select id="typeFilter">
+          <option value="all">Alle Bäder</option>
+          <option value="Freibad">Freibad</option>
+          <option value="Hallenbad">Hallenbad</option>
+          <option value="See">See / Natur</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <a href="eintragen.html" class="fab-btn" title="Neue Absprungzone eintragen">+</a>
+
+  <div id="bottomSheet" class="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-content">
+      <h2 id="poolTitle">Bad Name</h2>
+      <p id="poolType" class="badge">Freibad</p>
+      <div id="poolDetails" class="pool-details"></div>
+      <a id="navBtn" href="#" target="_blank" class="nav-btn">🧭 Route planen (Google Maps)</a>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="map.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
