@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Sprungbereich.de - Die Absprungzonen-Map</title>
+  <title>Sprungbereich.de - Finde deine Sprungspots</title>
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="style.css">
@@ -18,8 +18,9 @@
   <!-- Loading / Splash Screen Overlay -->
   <div id="splashScreen" class="splash-screen">
     <div class="splash-content">
+      <img src="images/Sprungbereich.de.png" alt="Turmspringer" class="splash-img">
       <h1 class="splash-title">Sprungbereich<span>.de</span></h1>
-      <p class="splash-slogan">Deine Community-Plattform für Sprungtürme & Absprungzonen</p>
+      <p class="splash-slogan">Deine Plattform für Sprungtürme & Klippenspots</p>
       <div class="splash-loader"></div>
     </div>
   </div>
@@ -29,7 +30,7 @@
   <header class="top-overlay" id="topOverlay">
     <div class="logo-area">
       <h1 class="site-title">Sprungbereich<span>.de</span></h1>
-      <p class="tagline">Finde deine Absprungzone</p>
+      <p class="tagline">Finde deinen nächsten Sprungspot</p>
     </div>
 
     <div class="search-box">
@@ -49,10 +50,10 @@
         </select>
 
         <select id="typeFilter">
-          <option value="all">Alle Bäder</option>
+          <option value="all">Alle Spots</option>
           <option value="Freibad">Freibad</option>
           <option value="Hallenbad">Hallenbad</option>
-          <option value="See">See / Natur</option>
+          <option value="See">See / Klippe</option>
         </select>
       </div>
 
@@ -65,13 +66,13 @@
     </div>
   </header>
 
-  <a href="eintragen.html" class="fab-btn" title="Neue Absprungzone eintragen">+</a>
+  <a href="eintragen.html" class="fab-btn" title="Neuen Sprungspot eintragen">+</a>
 
   <div id="bottomSheet" class="bottom-sheet">
     <div class="sheet-handle"></div>
     <div class="sheet-content">
       <div class="sheet-header">
-        <h2 id="poolTitle">Bad Name</h2>
+        <h2 id="poolTitle">Spot Name</h2>
         <span id="verifiedBadge" class="badge-status">Unbestätigt</span>
       </div>
       <p id="poolType" class="badge">Freibad</p>
