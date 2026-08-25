@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Sprungbereich.de - Finde deine Sprungspots</title>
+  <title>Sprungbereich.de - Zum Turm oder Klippen springen</title>
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="style.css">
@@ -15,12 +15,40 @@
 </head>
 <body>
 
-  <!-- Minimalistischer Loading / Splash Screen -->
+  <!-- Splash / Startbildschirm mit Länderauswahl -->
   <div id="splashScreen" class="splash-screen">
     <div class="splash-content">
+      <svg class="diver-animation" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+        <path class="wave wave1" d="M0,155 Q50,140 100,155 T200,155 L200,200 L0,200 Z" />
+        <path class="wave wave2" d="M0,165 Q50,150 100,165 T200,165 L200,200 L0,200 Z" />
+        <path d="M40,140 L135,122" stroke="#00f2fe" stroke-width="6" stroke-linecap="round" />
+        <rect x="130" y="122" width="10" height="38" fill="#172a45" rx="3" />
+        <g id="diverGroup">
+          <circle cx="122" cy="97" r="7" fill="#ffffff" />
+          <line x1="122" y1="104" x2="122" y2="122" stroke="#ffffff" stroke-width="4" stroke-linecap="round" />
+          <line x1="122" y1="110" x2="110" y2="117" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
+          <line x1="122" y1="110" x2="132" y2="102" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
+          <line x1="122" y1="122" x2="114" y2="137" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
+          <line x1="122" y1="122" x2="130" y2="137" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
+        </g>
+      </svg>
+
       <h1 class="splash-title">Sprungbereich<span>.de</span></h1>
-      <p class="splash-subtitle">Finde deine nächstgelegende Turm- oder Klippenspring Location</p>
-      <div class="loader-bar"></div>
+      <p class="splash-subtitle">Zum Turm oder Klippen springen</p>
+
+      <!-- Erster Filter: Länderauswahl beim Start -->
+      <div class="splash-country-box">
+        <label for="startCountrySelect">Land wählen:</label>
+        <select id="startCountrySelect">
+          <option value="de" selected>Deutschland</option>
+          <option value="at">Österreich</option>
+          <option value="ch">Schweiz</option>
+          <option value="fr">Frankreich</option>
+          <option value="it">Italien</option>
+          <option value="es">Spanien</option>
+        </select>
+        <button id="startMapBtn" class="btn-primary-start">Karte öffnen 🚀</button>
+      </div>
     </div>
   </div>
 
@@ -29,13 +57,21 @@
   <header class="top-overlay" id="topOverlay">
     <div class="logo-area">
       <h1 class="site-title">Sprungbereich<span>.de</span></h1>
-      <p class="tagline">Finde deinen nächsten Sprungspot</p>
+      <p class="tagline">Zum Turm oder Klippen springen</p>
     </div>
 
     <div class="search-box">
       <div class="input-group">
+        <select id="countryFilter" class="small-select" title="Land">
+          <option value="de">DE</option>
+          <option value="at">AT</option>
+          <option value="ch">CH</option>
+          <option value="fr">FR</option>
+          <option value="it">IT</option>
+          <option value="es">ES</option>
+        </select>
         <input type="text" id="searchInput" placeholder="Ort oder PLZ eingeben...">
-        <button id="searchBtn" class="btn-primary" title="Suchen">🔍 Los</button>
+        <button id="searchBtn" class="btn-primary" title="Suchen">🔍</button>
         <button id="locateBtn" class="btn-secondary" title="Standort verwenden">📍</button>
       </div>
 
@@ -59,7 +95,7 @@
       <div class="toggle-row">
         <label class="switch-label">
           <input type="checkbox" id="verifiedOnlyToggle">
-          <span>Nur von Community bestätigte Spots</span>
+          <span>Nur verifizierte Sprungspots</span>
         </label>
       </div>
     </div>
