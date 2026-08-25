@@ -1,40 +1,60 @@
-// GSAP Intro Animation
-window.addEventListener('load', () => {
-  const tl = gsap.timeline();
-  tl.to('.splash-title', { duration: 0.8, opacity: 1, y: 0 })
-    .to('.splash-slogan', { duration: 0.6, opacity: 1, y: 0 })
-    .to('#splashScreen', { duration: 0.8, opacity: 0, delay: 1.5, onComplete: () => {
-        document.getElementById('splashScreen').style.display = 'none';
-    }})
-    .from('#topOverlay', { duration: 0.6, y: -50, opacity: 0 });
-});
+document.addEventListener("DOMContentLoaded", () => {
+  // GSAP Entrance & Exit Animation for Loading Screen
+  if (typeof gsap !== "undefined") {
+    const tl = gsap.timeline();
 
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js');
-  });
-}
+    // 1. Zoom in & Fade in Bild
+    tl.to("#splashImg", {
+      duration: 1.0,
+      scale: 1,
+      opacity: 1,
+      ease: "back.out(1.4)"
+    })
+    // 2. Halteseite für 1.8 Sekunden
+    .to("#splashImg", {
+      duration: 1.8,
+      scale: 1.03,
+      ease: "none"
+    })
+    // 3. Zoom out / Smooth Fade out nach oben weg
+    .to("#splashScreen", {
+      duration: 0.8,
+      y: "-100%",
+      opacity: 0,
+      ease: "power3.inOut",
+      onComplete: () => {
+        const splash = document.getElementById("splashScreen");
+        if (splash) splash.style.display = "none";
+      }
+    })
+    // 4. Einblenden der Suchleiste
+    .from("#topOverlay", {
+      duration: 0.6,
+      y: -50,
+      opacity: 0,
+      ease: "power2.out"
+    }, "-=0.3");
+  }
 
-document.getElementById('heightFilter').addEventListener('change', applyFilters);
-document.getElementById('typeFilter').addEventListener('change', applyFilters);
+  // Suche Event Listener (Go Button)
+  const searchBtn = document.getElementById("searchBtn");
+  const searchInput = document.getElementById("searchInput");
 
-function applyFilters() {
-  const selectedHeight = parseFloat(document.getElementById('heightFilter').value);
-  const selectedType = document.getElementById('typeFilter').value;
+  if (searchBtn && searchInput) {
+    searchBtn.addEventListener("click", () => {
+      const query = searchInput.value.trim();
+      if (query && typeof window.searchLocation === "function") {
+        window.searchLocation(query);
+      }
+    });
 
-  const filtered = poolsData.filter(pool => {
-    const heightMatch = selectedHeight === 0 || pool.maxJump >= selectedHeight;
-    const typeMatch = selectedType === 'all' || pool.type === selectedType;
-    return heightMatch && typeMatch;
-  });
-
-  renderMarkers(filtered);
-}
-
-document.getElementById('locateBtn').addEventListener('click', () => {
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(pos => {
-      map.setView([pos.coords.latitude, pos.coords.longitude], 12);
+    searchInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") {
+        const query = searchInput.value.trim();
+        if (query && typeof window.searchLocation === "function") {
+          window.searchLocation(query);
+        }
+      }
     });
   }
 });
