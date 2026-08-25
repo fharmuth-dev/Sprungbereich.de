@@ -10,33 +10,17 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0a192f">
 
-  <!-- GSAP CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
 </head>
 <body>
 
-  <!-- Splash / Startbildschirm mit Länderauswahl -->
+  <!-- Loading / Startbildschirm ohne Sprungbrett-Animation -->
   <div id="splashScreen" class="splash-screen">
     <div class="splash-content">
-      <svg class="diver-animation" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-        <path class="wave wave1" d="M0,155 Q50,140 100,155 T200,155 L200,200 L0,200 Z" />
-        <path class="wave wave2" d="M0,165 Q50,150 100,165 T200,165 L200,200 L0,200 Z" />
-        <path d="M40,140 L135,122" stroke="#00f2fe" stroke-width="6" stroke-linecap="round" />
-        <rect x="130" y="122" width="10" height="38" fill="#172a45" rx="3" />
-        <g id="diverGroup">
-          <circle cx="122" cy="97" r="7" fill="#ffffff" />
-          <line x1="122" y1="104" x2="122" y2="122" stroke="#ffffff" stroke-width="4" stroke-linecap="round" />
-          <line x1="122" y1="110" x2="110" y2="117" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
-          <line x1="122" y1="110" x2="132" y2="102" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
-          <line x1="122" y1="122" x2="114" y2="137" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
-          <line x1="122" y1="122" x2="130" y2="137" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
-        </g>
-      </svg>
-
+      <div class="brand-logo-badge">🌊</div>
       <h1 class="splash-title">Sprungbereich<span>.de</span></h1>
       <p class="splash-subtitle">Zum Turm oder Klippen springen</p>
 
-      <!-- Erster Filter: Länderauswahl beim Start -->
       <div class="splash-country-box">
         <label for="startCountrySelect">Land wählen:</label>
         <select id="startCountrySelect">
@@ -78,6 +62,7 @@
       <div class="filter-row">
         <select id="heightFilter">
           <option value="0">Alle Höhen</option>
+          <option value="1">Ab 1m</option>
           <option value="3">Ab 3m</option>
           <option value="5">Ab 5m</option>
           <option value="7.5">Ab 7.5m</option>
