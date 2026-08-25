@@ -23,13 +23,13 @@
         <path class="wave wave1" d="M0,155 Q50,140 100,155 T200,155 L200,200 L0,200 Z" />
         <path class="wave wave2" d="M0,165 Q50,150 100,165 T200,165 L200,200 L0,200 Z" />
 
-        <!-- Sprungbrett: eigene Gruppe, damit es um den Mast-Befestigungspunkt federn kann -->
+        <!-- Sprungbrett: Ruheposition jetzt exakt horizontal/flach -->
         <g id="boardGroup">
-          <path d="M40,140 L135,122" stroke="#00f2fe" stroke-width="6" stroke-linecap="round" />
+          <path d="M40,123 L135,123" stroke="#00f2fe" stroke-width="6" stroke-linecap="round" />
         </g>
 
         <!-- Mast/Halterung bleibt fix, federt nicht mit -->
-        <rect x="130" y="122" width="10" height="38" fill="#172a45" rx="3" />
+        <rect x="130" y="123" width="10" height="37" fill="#172a45" rx="3" />
 
         <!-- Strichmännchen / Diver: steht vorne LINKS an der Brettspitze -->
         <g id="diverGroup">
@@ -63,56 +63,4 @@
       <div class="input-group">
         <input type="text" id="searchInput" placeholder="Ort oder PLZ eingeben...">
         <button id="searchBtn" class="btn-primary" title="Suchen">🔍 Los</button>
-        <button id="locateBtn" class="btn-secondary" title="Standort verwenden">📍</button>
-      </div>
-
-      <div class="filter-row">
-        <select id="heightFilter">
-          <option value="0">Alle Höhen</option>
-          <option value="3">Ab 3m</option>
-          <option value="5">Ab 5m</option>
-          <option value="7.5">Ab 7.5m</option>
-          <option value="10">Nur 10m Turm</option>
-        </select>
-
-        <select id="typeFilter">
-          <option value="all">Alle Spots</option>
-          <option value="Freibad">Freibad</option>
-          <option value="Hallenbad">Hallenbad</option>
-          <option value="See">See / Klippe</option>
-        </select>
-      </div>
-
-      <div class="toggle-row">
-        <label class="switch-label">
-          <input type="checkbox" id="verifiedOnlyToggle">
-          <span>Nur von Community bestätigte Spots</span>
-        </label>
-      </div>
-    </div>
-  </header>
-
-  <a href="eintragen.html" class="fab-btn" title="Neuen Sprungspot eintragen">+</a>
-
-  <div id="bottomSheet" class="bottom-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-content">
-      <div class="sheet-header">
-        <h2 id="poolTitle">Spot Name</h2>
-        <span id="verifiedBadge" class="badge-status">Unbestätigt</span>
-      </div>
-      <p id="poolType" class="badge">Freibad</p>
-      <div id="poolDetails" class="pool-details"></div>
-      
-      <div class="action-buttons">
-        <a id="navBtn" href="#" target="_blank" class="nav-btn">🧭 Route (Google Maps)</a>
-        <a id="editBtn" href="eintragen.html" class="edit-btn">✏️ Daten ergänzen</a>
-      </div>
-    </div>
-  </div>
-
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="map.js"></script>
-  <script src="app.js"></script>
-</body>
-</html>
+        <button id="locateBtn"
