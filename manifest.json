@@ -1,0 +1,8 @@
+{
+  "name": "Sprungbereich.de",
+  "short_name": "Sprungbereich",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0a192f",
+  "theme_color": "#0a192f"
+}
