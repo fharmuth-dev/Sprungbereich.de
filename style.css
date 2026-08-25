@@ -13,6 +13,7 @@ body, html {
   color: #ffffff;
 }
 
+/* Clean Dark Splash Screen */
 .splash-screen {
   position: fixed;
   top: 0;
@@ -24,6 +25,7 @@ body, html {
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 20px;
 }
 
 .splash-content {
@@ -32,95 +34,15 @@ body, html {
   align-items: center;
   justify-content: center;
   text-align: center;
-}
-
-.diver-animation {
-  width: 180px;
-  height: 180px;
-  margin-bottom: 10px;
-  overflow: visible;
-}
-
-/* Blaue Wellen-Animation */
-.wave1 {
-  fill: rgba(0, 200, 224, 0.35);
-  animation: waveMove 3s infinite ease-in-out;
-}
-
-.wave2 {
-  fill: rgba(41, 121, 217, 0.7);
-  animation: waveMove2 2.5s infinite ease-in-out;
-}
-
-@keyframes waveMove {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-5px); }
-}
-
-@keyframes waveMove2 {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-7px); }
-}
-
-/* Sprungbrett: Ruheposition (0%) ist exakt 180° / flach.
-   Federt beim Einfedern des Springers synchron mit. */
-#boardGroup {
-  animation: boardFlex 2.6s infinite ease-in-out;
-  transform-origin: 135px 123px; /* Drehpunkt = Befestigung am Mast */
-}
-
-@keyframes boardFlex {
-  0%   { transform: rotate(0deg); }     /* Ruheposition: exakt eben */
-  8%   { transform: rotate(-4deg); }    /* 1. Einfedern - Spitze geht runter */
-  16%  { transform: rotate(2deg); }     /* federt hoch */
-  24%  { transform: rotate(-4.5deg); }  /* 2. Einfedern */
-  32%  { transform: rotate(2deg); }     /* federt hoch */
-  40%  { transform: rotate(-5deg); }    /* 3. Einfedern - tiefster Punkt */
-  50%  { transform: rotate(3deg); }     /* Brett schnellt hoch, Springer stößt sich ab */
-  60%  { transform: rotate(-1deg); }    /* Nachschwingen */
-  70%, 100% { transform: rotate(0deg); } /* Brett kommt zur Ruhe: wieder exakt eben */
-}
-
-/* Springer: 3x einfedern auf der Brettspitze, Absprung weiter weg vom Brett,
-   2x Drehung in der Luft (entgegengesetzte Richtung), Kopfsprung ins Wasser */
-#diverGroup {
-  animation: diverJump 2.6s infinite ease-in-out;
-  transform-origin: 40px 123px;
-}
-
-@keyframes diverJump {
-  0%   { transform: translateY(0) rotate(0deg); }
-
-  /* 1. Einfedern (bewegt sich mit der Brettspitze) */
-  8%   { transform: translateY(7px) rotate(0deg); }
-  16%  { transform: translateY(-4px) rotate(0deg); }
-
-  /* 2. Einfedern */
-  24%  { transform: translateY(8px) rotate(0deg); }
-  32%  { transform: translateY(-4px) rotate(0deg); }
-
-  /* 3. Einfedern (tiefster Absprungimpuls) */
-  40%  { transform: translateY(9px) rotate(0deg); }
-
-  /* Absprung: weiter weg vom Brett, nach links oben */
-  50%  { transform: translate(-16px, -22px) rotate(0deg); }
-
-  /* 1. Vorwärtsrotation, weiter nach links raus, jetzt in Gegenrichtung */
-  65%  { transform: translate(-38px, -12px) rotate(-360deg); }
-
-  /* 2. Rotation abgeschlossen, sinkt Richtung Wasser */
-  80%  { transform: translate(-25px, 24px) rotate(-720deg); }
-
-  /* Ausrichtung zum Kopfsprung + Eintauchen */
-  90%  { transform: translate(-15px, 48px) rotate(-810deg); opacity: 1; }
-  100% { transform: translate(-8px, 62px) rotate(-810deg) scale(0.15); opacity: 0; }
+  max-width: 400px;
 }
 
 .splash-title {
-  font-size: 1.8rem;
+  font-size: 2.2rem;
   font-weight: 800;
   color: #ffffff;
   letter-spacing: -0.5px;
+  margin-bottom: 8px;
 }
 
 .splash-title span {
@@ -128,10 +50,232 @@ body, html {
 }
 
 .splash-subtitle {
-  font-size: 0.85rem;
+  font-size: 0.95rem;
   color: #8892b0;
-  margin-top: 4px;
-  letter-spacing: 0.5px;
+  line-height: 1.4;
+  margin-bottom: 24px;
 }
 
+/* Subtiler Ladebalken unten */
+.loader-bar {
+  width: 120px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+  position: relative;
+}
+
+.loader-bar::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -50%;
+  width: 50%;
+  height: 100%;
+  background: #00f2fe;
+  border-radius: 3px;
+  animation: loadingProgress 1.5s infinite ease-in-out;
+}
+
+@keyframes loadingProgress {
+  0% { left: -50%; }
+  100% { left: 100%; }
+}
+
+/* Map & UI Layout */
 #map {
+  width: 100vw;
+  height: 100vh;
+  z-index: 1;
+}
+
+.top-overlay {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 92%;
+  max-width: 480px;
+  z-index: 1000;
+  background: rgba(10, 25, 47, 0.92);
+  backdrop-filter: blur(12px);
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
+
+.site-title {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.site-title span {
+  color: #00f2fe;
+}
+
+.tagline {
+  font-size: 0.75rem;
+  color: #8892b0;
+  margin-bottom: 12px;
+}
+
+.input-group {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.input-group input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #233554;
+  background: #112240;
+  color: #fff;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.input-group input:focus {
+  border-color: #00f2fe;
+}
+
+.btn-primary {
+  background: #00f2fe;
+  color: #0a192f;
+  font-weight: bold;
+  border: none;
+  padding: 10px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.btn-secondary {
+  background: #112240;
+  border: 1px solid #233554;
+  padding: 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.filter-row {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.filter-row select {
+  flex: 1;
+  padding: 8px;
+  border-radius: 8px;
+  border: 1px solid #233554;
+  background: #112240;
+  color: #00f2fe;
+  font-size: 0.85rem;
+  outline: none;
+}
+
+.toggle-row {
+  font-size: 0.75rem;
+  color: #8892b0;
+  display: flex;
+  align-items: center;
+  margin-top: 6px;
+}
+
+.switch-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.fab-btn {
+  position: absolute;
+  bottom: 24px;
+  right: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #00f2fe, #4facfe);
+  color: #0a192f;
+  font-size: 2rem;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  z-index: 1000;
+  box-shadow: 0 4px 15px rgba(0, 242, 254, 0.4);
+}
+
+.bottom-sheet {
+  position: absolute;
+  bottom: -350px;
+  left: 0;
+  width: 100%;
+  background: #112240;
+  border-radius: 20px 20px 0 0;
+  padding: 18px;
+  z-index: 1001;
+  transition: bottom 0.3s ease-in-out;
+  box-shadow: 0 -5px 25px rgba(0,0,0,0.5);
+}
+
+.bottom-sheet.active {
+  bottom: 0;
+}
+
+.sheet-handle {
+  width: 40px;
+  height: 4px;
+  background: #233554;
+  border-radius: 2px;
+  margin: 0 auto 12px auto;
+}
+
+.sheet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.badge-status {
+  font-size: 0.7rem;
+  padding: 3px 8px;
+  border-radius: 10px;
+  background: #233554;
+  color: #8892b0;
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.nav-btn {
+  flex: 2;
+  text-align: center;
+  background: #00f2fe;
+  color: #0a192f;
+  padding: 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-weight: bold;
+}
+
+.edit-btn {
+  flex: 1;
+  text-align: center;
+  background: #112240;
+  color: #fff;
+  border: 1px solid #233554;
+  padding: 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-size: 0.85rem;
+}
