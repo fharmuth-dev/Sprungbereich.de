@@ -15,30 +15,30 @@
 </head>
 <body>
 
-  <!-- Loading / Splash Screen mit animierter SVG-Sprungszene -->
+  <!-- Loading / Splash Screen mit animierter blauer SVG-Sprungszene -->
   <div id="splashScreen" class="splash-screen">
     <div class="splash-content">
       <svg class="diver-animation" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-        <!-- Wellen / Wasser unten -->
-        <path class="wave wave1" d="M0,160 Q50,150 100,160 T200,160 L200,200 L0,200 Z" />
-        <path class="wave wave2" d="M0,170 Q50,160 100,170 T200,170 L200,200 L0,200 Z" />
+        <!-- Blaues Wasser / Wellen unten -->
+        <path class="wave wave1" d="M0,155 Q50,140 100,155 T200,155 L200,200 L0,200 Z" />
+        <path class="wave wave2" d="M0,165 Q50,150 100,165 T200,165 L200,200 L0,200 Z" />
 
         <!-- Sprungbrett -->
         <path d="M40,140 L135,122" stroke="#00f2fe" stroke-width="6" stroke-linecap="round" />
-        <rect x="130" y="122" width="10" height="38" fill="#233554" rx="3" />
+        <rect x="130" y="122" width="10" height="38" fill="#172a45" rx="3" />
 
-        <!-- Strichmännchen / Diver (Weiter vorne am Brett: x=122, y=112) -->
-        <g id="diverGroup" transform="translate(122, 112)">
+        <!-- Strichmännchen / Diver (steht vorne am Brett) -->
+        <g id="diverGroup">
           <!-- Kopf -->
-          <circle cx="0" cy="-15" r="7" fill="#ffffff" />
+          <circle cx="122" cy="97" r="7" fill="#ffffff" />
           <!-- Körper -->
-          <line x1="0" y1="-8" x2="0" y2="10" stroke="#ffffff" stroke-width="4" stroke-linecap="round" />
+          <line x1="122" y1="104" x2="122" y2="122" stroke="#ffffff" stroke-width="4" stroke-linecap="round" />
           <!-- Arme -->
-          <line x1="0" y1="-2" x2="-12" y2="5" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
-          <line x1="0" y1="-2" x2="10" y2="-10" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
+          <line x1="122" y1="110" x2="110" y2="117" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
+          <line x1="122" y1="110" x2="132" y2="102" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
           <!-- Beine -->
-          <line x1="0" y1="10" x2="-8" y2="25" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
-          <line x1="0" y1="10" x2="8" y2="25" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
+          <line x1="122" y1="122" x2="114" y2="137" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
+          <line x1="122" y1="122" x2="130" y2="137" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
         </g>
       </svg>
 
