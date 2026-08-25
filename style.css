@@ -13,7 +13,6 @@ body, html {
   color: #ffffff;
 }
 
-/* Splash Screen Layout */
 .splash-screen {
   position: fixed;
   top: 0;
@@ -42,7 +41,6 @@ body, html {
   overflow: visible;
 }
 
-/* Wellen-Design */
 .wave1 {
   fill: rgba(0, 242, 254, 0.2);
   animation: waveMove 3s infinite ease-in-out;
@@ -81,7 +79,6 @@ body, html {
   letter-spacing: 0.5px;
 }
 
-/* Map & UI Layout */
 #map {
   width: 100vw;
   height: 100vh;
