@@ -1,24 +1,24 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // GSAP Entrance & Exit Animation for Loading Screen
+  // GSAP Animation mit garantiertem Start-State
   if (typeof gsap !== "undefined") {
     const tl = gsap.timeline();
 
-    // 1. Zoom in & Fade in Bild
+    // 1. Sanftes Einblenden & Scale-Up des Bildes
     tl.to("#splashImg", {
       duration: 1.0,
       scale: 1,
       opacity: 1,
-      ease: "back.out(1.4)"
+      ease: "power2.out"
     })
-    // 2. Halteseite für 1.8 Sekunden
+    // 2. Kurz wirken lassen (1.5 Sekunden)
     .to("#splashImg", {
-      duration: 1.8,
-      scale: 1.03,
+      duration: 1.5,
+      scale: 1.02,
       ease: "none"
     })
-    // 3. Zoom out / Smooth Fade out nach oben weg
+    // 3. Nach oben hin wegschieben (Smooth Exit)
     .to("#splashScreen", {
-      duration: 0.8,
+      duration: 0.7,
       y: "-100%",
       opacity: 0,
       ease: "power3.inOut",
@@ -27,16 +27,22 @@ document.addEventListener("DOMContentLoaded", () => {
         if (splash) splash.style.display = "none";
       }
     })
-    // 4. Einblenden der Suchleiste
+    // 4. Suchleiste von oben einfliegen lassen
     .from("#topOverlay", {
-      duration: 0.6,
-      y: -50,
+      duration: 0.5,
+      y: -40,
       opacity: 0,
       ease: "power2.out"
     }, "-=0.3");
+  } else {
+    // Fallback falls GSAP lädtverzögerung hat
+    setTimeout(() => {
+      const splash = document.getElementById("splashScreen");
+      if (splash) splash.style.display = "none";
+    }, 2500);
   }
 
-  // Suche Event Listener (Go Button)
+  // Suche Event Listener
   const searchBtn = document.getElementById("searchBtn");
   const searchInput = document.getElementById("searchInput");
 
