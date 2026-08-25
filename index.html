@@ -6,7 +6,7 @@
   <title>Sprungbereich.de - Finde deine Sprungspots</title>
   
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0a192f">
 
@@ -15,29 +15,77 @@
 </head>
 <body>
 
-  <!-- Loading / Splash Screen mit animierter blauer SVG-Sprungszene -->
+  <!-- Minimalistischer Loading / Splash Screen -->
   <div id="splashScreen" class="splash-screen">
     <div class="splash-content">
-      <svg class="diver-animation" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-        <!-- Blaues Wasser / Wellen unten -->
-        <path class="wave wave1" d="M0,155 Q50,140 100,155 T200,155 L200,200 L0,200 Z" />
-        <path class="wave wave2" d="M0,165 Q50,150 100,165 T200,165 L200,200 L0,200 Z" />
+      <h1 class="splash-title">Sprungbereich<span>.de</span></h1>
+      <p class="splash-subtitle">Finde deine nächstgelegende Turm- oder Klippenspring Location</p>
+      <div class="loader-bar"></div>
+    </div>
+  </div>
 
-        <!-- Sprungbrett: Ruheposition exakt horizontal/flach -->
-        <g id="boardGroup">
-          <path d="M40,123 L135,123" stroke="#00f2fe" stroke-width="6" stroke-linecap="round" />
-        </g>
+  <div id="map"></div>
 
-        <!-- Mast/Halterung bleibt fix, federt nicht mit -->
-        <rect x="130" y="123" width="10" height="37" fill="#172a45" rx="3" />
+  <header class="top-overlay" id="topOverlay">
+    <div class="logo-area">
+      <h1 class="site-title">Sprungbereich<span>.de</span></h1>
+      <p class="tagline">Finde deinen nächsten Sprungspot</p>
+    </div>
 
-        <!-- Strichmännchen / Diver: steht vorne LINKS, Füße exakt auf der Brettlinie (y=123) -->
-        <g id="diverGroup">
-          <!-- Kopf -->
-          <circle cx="40" cy="88" r="7" fill="#ffffff" />
-          <!-- Körper (Hals bis Hüfte) -->
-          <line x1="40" y1="95" x2="40" y2="113" stroke="#ffffff" stroke-width="4" stroke-linecap="round" />
-          <!-- Arme (ab Schulter) -->
-          <line x1="40" y1="99" x2="29" y2="105" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
-          <line x1="40" y1="99" x2="51" y2="93" stroke="#ffffff" stroke-width="3" stroke-linecap="round" />
-          <!-- Beine (Hüfte bis Fuß,
+    <div class="search-box">
+      <div class="input-group">
+        <input type="text" id="searchInput" placeholder="Ort oder PLZ eingeben...">
+        <button id="searchBtn" class="btn-primary" title="Suchen">🔍 Los</button>
+        <button id="locateBtn" class="btn-secondary" title="Standort verwenden">📍</button>
+      </div>
+
+      <div class="filter-row">
+        <select id="heightFilter">
+          <option value="0">Alle Höhen</option>
+          <option value="3">Ab 3m</option>
+          <option value="5">Ab 5m</option>
+          <option value="7.5">Ab 7.5m</option>
+          <option value="10">Nur 10m Turm</option>
+        </select>
+
+        <select id="typeFilter">
+          <option value="all">Alle Spots</option>
+          <option value="Freibad">Freibad</option>
+          <option value="Hallenbad">Hallenbad</option>
+          <option value="See">See / Klippe</option>
+        </select>
+      </div>
+
+      <div class="toggle-row">
+        <label class="switch-label">
+          <input type="checkbox" id="verifiedOnlyToggle">
+          <span>Nur von Community bestätigte Spots</span>
+        </label>
+      </div>
+    </div>
+  </header>
+
+  <a href="eintragen.html" class="fab-btn" title="Neuen Sprungspot eintragen">+</a>
+
+  <div id="bottomSheet" class="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-content">
+      <div class="sheet-header">
+        <h2 id="poolTitle">Spot Name</h2>
+        <span id="verifiedBadge" class="badge-status">Unbestätigt</span>
+      </div>
+      <p id="poolType" class="badge">Freibad</p>
+      <div id="poolDetails" class="pool-details"></div>
+      
+      <div class="action-buttons">
+        <a id="navBtn" href="#" target="_blank" class="nav-btn">🧭 Route (Google Maps)</a>
+        <a id="editBtn" href="eintragen.html" class="edit-btn">✏️ Daten ergänzen</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="map.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
