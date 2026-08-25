@@ -1,29 +1,44 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // Nach 2.6 Sekunden (genau nach einem Animationszyklus) den Splash Screen wegschieben
-  setTimeout(() => {
-    if (typeof gsap !== "undefined") {
-      gsap.to("#splashScreen", {
-        duration: 0.7,
-        y: "-100%",
-        opacity: 0,
-        ease: "power3.inOut",
-        onComplete: () => {
-          const splash = document.getElementById("splashScreen");
-          if (splash) splash.style.display = "none";
-        }
-      });
-      gsap.from("#topOverlay", {
-        duration: 0.5,
-        y: -40,
-        opacity: 0,
-        ease: "power2.out",
-        delay: 0.2
-      });
-    } else {
-      const splash = document.getElementById("splashScreen");
-      if (splash) splash.style.display = "none";
+
+  // Garantiert den Splash Screen ausblenden, egal was vorher schiefgeht
+  function hideSplash() {
+    const splash = document.getElementById("splashScreen");
+    if (!splash || splash.dataset.hidden === "true") return; // schon ausgeblendet -> nichts tun
+    splash.dataset.hidden = "true";
+
+    try {
+      if (typeof gsap !== "undefined") {
+        gsap.to("#splashScreen", {
+          duration: 0.7,
+          y: "-100%",
+          opacity: 0,
+          ease: "power3.inOut",
+          onComplete: () => { splash.style.display = "none"; }
+        });
+        gsap.from("#topOverlay", {
+          duration: 0.5,
+          y: -40,
+          opacity: 0,
+          ease: "power2.out",
+          delay: 0.2
+        });
+      } else {
+        splash.style.display = "none";
+      }
+    } catch (err) {
+      // Falls GSAP aus irgendeinem Grund einen Fehler wirft: trotzdem ausblenden
+      console.error("Splash-Übergang fehlgeschlagen, blende trotzdem aus:", err);
+      splash.style.display = "none";
     }
-  }, 2600);
+  }
+
+  // Regulärer Übergang nach einem Animationszyklus (2.6s)
+  setTimeout(hideSplash, 2600);
+
+  // Sicherheitsnetz: falls aus irgendeinem Grund (z.B. Fehler weiter oben im Skript,
+  // alter Cache-Stand, etc.) der reguläre Timeout nicht greift, spätestens nach 5s erzwingen
+  setTimeout(hideSplash, 5000);
+
   // Suche Event Listener
   const searchBtn = document.getElementById("searchBtn");
   const searchInput = document.getElementById("searchInput");
