@@ -13,7 +13,7 @@ body, html {
   color: #ffffff;
 }
 
-/* Responsive Fullscreen Splash Screen */
+/* Perfekt zentrierter Splash Screen (Vollbild, kein Abschneiden) */
 .splash-screen {
   position: fixed;
   top: 0;
@@ -25,27 +25,20 @@ body, html {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 20px;
-}
-
-.splash-content {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 100%;
-  height: 100%;
+  padding: 15px;
 }
 
 .splash-img {
-  max-width: 85vw;
-  max-height: 70vh;
-  width: auto;
+  max-width: 95vw;
+  max-height: 90vh;
+  width: 100%;
   height: auto;
   object-fit: contain;
-  border-radius: 16px;
+  border-radius: 12px;
   box-shadow: 0 10px 40px rgba(0, 242, 254, 0.25);
-  transform: scale(0.85);
+  /* Fallback-Startwerte, falls JS kurz braucht */
   opacity: 0;
+  transform: scale(0.9);
 }
 
 /* Map & UI Layout */
