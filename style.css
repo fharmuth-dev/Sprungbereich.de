@@ -13,7 +13,7 @@ body, html {
   color: #ffffff;
 }
 
-/* Splash / Loading Screen */
+/* Responsive Fullscreen Splash Screen */
 .splash-screen {
   position: fixed;
   top: 0;
@@ -25,57 +25,27 @@ body, html {
   display: flex;
   align-items: center;
   justify-content: center;
-  text-align: center;
+  padding: 20px;
 }
 
 .splash-content {
   display: flex;
-  flex-direction: column;
   align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
 }
 
 .splash-img {
-  width: 140px;
-  height: 140px;
-  object-fit: cover;
-  border-radius: 50%;
-  margin-bottom: 15px;
-  border: 3px solid #00f2fe;
-  box-shadow: 0 0 20px rgba(0, 242, 254, 0.4);
-}
-
-.splash-title {
-  font-size: 2.2rem;
-  font-weight: 800;
+  max-width: 85vw;
+  max-height: 70vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 16px;
+  box-shadow: 0 10px 40px rgba(0, 242, 254, 0.25);
+  transform: scale(0.85);
   opacity: 0;
-  transform: translateY(10px);
-}
-
-.splash-title span {
-  color: #00f2fe;
-}
-
-.splash-slogan {
-  font-size: 0.95rem;
-  color: #8892b0;
-  margin: 10px 20px 0 20px;
-  opacity: 0;
-  transform: translateY(10px);
-}
-
-.splash-loader {
-  width: 40px;
-  height: 4px;
-  background: #00f2fe;
-  margin-top: 25px;
-  border-radius: 2px;
-  animation: loading 1.5s infinite ease-in-out;
-}
-
-@keyframes loading {
-  0% { width: 0; opacity: 0.2; }
-  50% { width: 80px; opacity: 1; }
-  100% { width: 0; opacity: 0.2; }
 }
 
 /* Map & UI Layout */
