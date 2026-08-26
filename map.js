@@ -1,7 +1,8 @@
 let map;
 let markersGroup;
 let countryBorderLayer = null;
-let regionBorderLayer = null;
+let radiusCircleLayer = null; // Layer für den neon-grünen Radius-Kreis
+let currentSearchCenter = null; // Speichert den aktuellen Suchmittelpunkt (Lat/Lng)
 let allSpots = [];
 
 // Supabase Konfiguration (Optional)
@@ -13,18 +14,18 @@ if (typeof supabase !== "undefined" && SUPABASE_URL !== "DEINE_SUPABASE_URL") {
   supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 }
 
-// Lokale deutsche Stammdaten
 const localDatabase = [
-  { id: 1, name: "Olympia-Schwimmhalle München", country: "de", state: "Bayern", city: "München", zip: "80809", type: "Hallenbad", height: 10, verified: true, lat: 48.1732, lng: 11.5536 },
-  { id: 2, name: "Stadionbad Nürnberg", country: "de", state: "Bayern", city: "Nürnberg", zip: "90471", type: "Freibad", height: 10, verified: true, lat: 49.4322, lng: 11.1194 },
-  { id: 3, name: "Inselbad Untertürkheim Stuttgart", country: "de", state: "Baden-Württemberg", city: "Stuttgart", zip: "70327", type: "Freibad", height: 10, verified: true, lat: 48.7780, lng: 9.2520 },
-  { id: 4, name: "SSV Ulm Freibad SSV Ulm 1846", country: "de", state: "Baden-Württemberg", city: "Ulm", zip: "89073", type: "Freibad", height: 5, verified: true, lat: 48.4011, lng: 9.9876 },
-  { id: 5, name: "Strandbad Wannsee Berlin", country: "de", state: "Berlin", city: "Berlin", zip: "14129", type: "See", height: 5, verified: false, lat: 52.4384, lng: 13.1785 },
-  { id: 6, name: "Freibad Prinzenstraße Berlin", country: "de", state: "Berlin", city: "Berlin", zip: "10969", type: "Freibad", height: 10, verified: true, lat: 52.4965, lng: 13.4116 },
-  { id: 7, name: "Stadionbad Köln", country: "de", state: "Nordrhein-Westfalen", city: "Köln", zip: "50933", type: "Freibad", height: 10, verified: true, lat: 50.9333, lng: 6.8744 }
+  { id: 1, name: "Olympia-Schwimmhalle München", country: "de", city: "München", zip: "80809", type: "Hallenbad", height: 10, verified: true, lat: 48.1732, lng: 11.5536 },
+  { id: 2, name: "Stadionbad Nürnberg", country: "de", city: "Nürnberg", zip: "90471", type: "Freibad", height: 10, verified: true, lat: 49.4322, lng: 11.1194 },
+  { id: 3, name: "Inselbad Untertürkheim Stuttgart", country: "de", city: "Stuttgart", zip: "70327", type: "Freibad", height: 10, verified: true, lat: 48.7780, lng: 9.2520 },
+  { id: 4, name: "SSV Ulm 1846 Freibad", country: "de", city: "Ulm", zip: "89073", type: "Freibad", height: 5, verified: true, lat: 48.4011, lng: 9.9876 },
+  { id: 5, name: "Freibad Neu-Ulm", country: "de", city: "Neu-Ulm", zip: "89231", type: "Freibad", height: 10, verified: true, lat: 48.3870, lng: 10.0050 },
+  { id: 6, name: "Waldbad Günzburg", country: "de", city: "Günzburg", zip: "89312", type: "Freibad", height: 5, verified: true, lat: 48.4520, lng: 10.2740 },
+  { id: 7, name: "Strandbad Wannsee Berlin", country: "de", city: "Berlin", zip: "14129", type: "See", height: 5, verified: false, lat: 52.4384, lng: 13.1785 },
+  { id: 8, name: "Freibad Prinzenstraße Berlin", country: "de", city: "Berlin", zip: "10969", type: "Freibad", height: 10, verified: true, lat: 52.4965, lng: 13.4116 },
+  { id: 9, name: "Stadionbad Köln", country: "de", city: "Köln", zip: "50933", type: "Freibad", height: 10, verified: true, lat: 50.9333, lng: 6.8744 }
 ];
 
-// Liste aller 16 Bundesländer mit Koordinaten & Standard-Start auf Bayern
 window.germanStates = {
   "Baden-Württemberg": { lat: 48.6616, lng: 9.3501, zoom: 8 },
   "Bayern": { lat: 48.7904, lng: 11.4976, zoom: 7.5 },
@@ -45,7 +46,6 @@ window.germanStates = {
 };
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Deutschland-Zentrum
   map = L.map("map", { zoomControl: false }).setView([51.1657, 10.4515], 6);
 
   L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
@@ -59,9 +59,18 @@ document.addEventListener("DOMContentLoaded", () => {
   loadSpotsData();
   drawGermanyOutline();
 
+  // Event Listener für Filteränderungen
   document.getElementById("heightFilter").addEventListener("change", applyAllFilters);
   document.getElementById("typeFilter").addEventListener("change", applyAllFilters);
   document.getElementById("verifiedOnlyToggle").addEventListener("change", applyAllFilters);
+  
+  // Bei Ändern des Radius direkt neu filtern & Kreis anpassen
+  document.getElementById("radiusFilter").addEventListener("change", () => {
+    if (currentSearchCenter) {
+      updateRadiusCircle(currentSearchCenter.lat, currentSearchCenter.lng);
+    }
+    applyAllFilters();
+  });
 
   document.getElementById("searchBtn").addEventListener("click", executeSearch);
   document.getElementById("searchInput").addEventListener("keydown", (e) => {
@@ -83,56 +92,63 @@ async function loadSpotsData() {
   applyAllFilters();
 }
 
-// Zeichnet die Deutschland-Außengrenze (Cyan)
-async function drawGermanyOutline() {
-  try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&country=Germany&limit=1`);
-    const data = await res.json();
-    if (data && data[0] && data[0].geojson) {
-      countryBorderLayer = L.geoJSON(data[0].geojson, {
-        style: {
-          color: "#00f2fe",
-          weight: 2,
-          opacity: 0.6,
-          fillColor: "#00f2fe",
-          fillOpacity: 0.02
-        }
-      }).addTo(map);
-    }
-  } catch (e) {
-    console.log("Deutschland-Grenze konnte nicht geladen werden.");
-  }
+function drawGermanyOutline() {
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&country=Germany&limit=1`)
+    .then(res => res.json())
+    .then(data => {
+      if (data && data[0] && data[0].geojson) {
+        countryBorderLayer = L.geoJSON(data[0].geojson, {
+          style: {
+            color: "#00f2fe",
+            weight: 2,
+            opacity: 0.5,
+            fillColor: "#00f2fe",
+            fillOpacity: 0.02
+          }
+        }).addTo(map);
+      }
+    });
 }
 
-// Hebt das gewählte Bundesland grün hervor (z. B. Bayern)
-window.highlightStateByName = async function(stateName) {
+// Haversine-Formel zur präzisen Distanzberechnung in Kilometern
+function getDistanceInKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+}
+
+// Zeichnet den stylischen Neon-Grünen Radius-Kreis auf die Map
+function updateRadiusCircle(lat, lng) {
+  const radiusKm = parseFloat(document.getElementById("radiusFilter").value) || 25;
+  const radiusMeters = radiusKm * 1000;
+
+  if (radiusCircleLayer) {
+    map.removeLayer(radiusCircleLayer);
+  }
+
+  radiusCircleLayer = L.circle([lat, lng], {
+    radius: radiusMeters,
+    color: "#10b981",       // Emerald-Grün
+    weight: 2.5,
+    opacity: 0.95,
+    fillColor: "#10b981",
+    fillOpacity: 0.08,
+    dashArray: "6, 6"        // Stylische gestrichelte Neon-Linie
+  }).addTo(map);
+
+  // Zoom-Stufe automatisch so anpassen, dass der gesamte Radius-Kreis gut sichtbar ist
+  map.fitBounds(radiusCircleLayer.getBounds(), { padding: [30, 30] });
+}
+
+window.highlightStateByName = function(stateName) {
   const conf = window.germanStates[stateName];
   if (conf) {
     map.setView([conf.lat, conf.lng], conf.zoom);
-  }
-
-  if (regionBorderLayer) {
-    map.removeLayer(regionBorderLayer);
-    regionBorderLayer = null;
-  }
-
-  try {
-    const searchRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&q=${encodeURIComponent(stateName)}&countrycodes=de&limit=1`);
-    const searchData = await searchRes.json();
-
-    if (searchData && searchData[0] && searchData[0].geojson) {
-      regionBorderLayer = L.geoJSON(searchData[0].geojson, {
-        style: {
-          color: "#10b981", // Emerald Grün
-          weight: 3,
-          opacity: 0.9,
-          fillColor: "#10b981",
-          fillOpacity: 0.08
-        }
-      }).addTo(map);
-    }
-  } catch (e) {
-    console.log("Bundesland-Umrandung konnte nicht geladen werden.");
   }
 };
 
@@ -141,21 +157,37 @@ function applyAllFilters() {
   const type = document.getElementById("typeFilter").value;
   const verifiedOnly = document.getElementById("verifiedOnlyToggle").checked;
   const query = document.getElementById("searchInput").value.toLowerCase().trim();
+  const maxRadiusKm = parseFloat(document.getElementById("radiusFilter").value) || 25;
 
   markersGroup.clearLayers();
 
   const filtered = allSpots.filter(spot => {
+    // 1. Höhen-Filter
     const matchHeight = (spot.height || 0) >= minHeight;
+    // 2. Typ-Filter
     const matchType = type === "all" || spot.type === type;
+    // 3. Verifiziert-Filter
     const matchVerified = !verifiedOnly || spot.verified === true;
-    const matchQuery = !query || 
-                       spot.name.toLowerCase().includes(query) || 
-                       spot.city.toLowerCase().includes(query) || 
-                       (spot.zip && spot.zip.includes(query));
 
-    return matchHeight && matchType && matchVerified && matchQuery;
+    // 4. Text-Filter (wenn kein Radius-Zentrum aktiv ist)
+    let matchQuery = true;
+    if (!currentSearchCenter && query !== "") {
+      matchQuery = spot.name.toLowerCase().includes(query) || 
+                 spot.city.toLowerCase().includes(query) || 
+                 (spot.zip && spot.zip.includes(query));
+    }
+
+    // 5. Radius-Filter (falls eine Ortssuche stattgefunden hat)
+    let matchRadius = true;
+    if (currentSearchCenter) {
+      const dist = getDistanceInKm(currentSearchCenter.lat, currentSearchCenter.lng, spot.lat, spot.lng);
+      matchRadius = dist <= maxRadiusKm;
+    }
+
+    return matchHeight && matchType && matchVerified && matchQuery && matchRadius;
   });
 
+  // Marker zeichnen
   filtered.forEach(spot => {
     const marker = L.circleMarker([spot.lat, spot.lng], {
       radius: 9,
@@ -178,36 +210,36 @@ function applyAllFilters() {
 
 function executeSearch() {
   const query = document.getElementById("searchInput").value.trim();
-  const filtered = applyAllFilters();
 
-  if (query !== "") {
-    if (filtered.length > 0) {
-      const target = filtered[0];
-      map.setView([target.lat, target.lng], 12);
-      if (target.state) window.highlightStateByName(target.state);
-    } else {
-      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=de`)
-        .then(res => res.json())
-        .then(results => {
-          if (results && results.length > 0) {
-            const lat = parseFloat(results[0].lat);
-            const lon = parseFloat(results[0].lon);
-            map.setView([lat, lon], 12);
-            
-            // Zugehöriges Bundesland auflösen
-            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=6`)
-              .then(r => r.json())
-              .then(data => {
-                if (data && data.address && data.address.state) {
-                  window.highlightStateByName(data.address.state);
-                }
-              });
-          } else {
-            alert("Kein Ort in Deutschland gefunden.");
-          }
-        });
-    }
+  if (query === "") {
+    // Wenn Suche gelöscht wird, Radius-Kreis aufheben
+    currentSearchCenter = null;
+    if (radiusCircleLayer) map.removeLayer(radiusCircleLayer);
+    applyAllFilters();
+    return;
   }
+
+  // Geocoding via Nominatim (z.B. PLZ 89073 oder Ort "Ulm")
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=de`)
+    .then(res => res.json())
+    .then(results => {
+      if (results && results.length > 0) {
+        const lat = parseFloat(results[0].lat);
+        const lon = parseFloat(results[0].lon);
+        
+        // Neues Suchzentrum setzen
+        currentSearchCenter = { lat, lng: lon };
+
+        // Neon-Grünen Radius-Kreis zeichnen und Karte darauf ausrichten
+        updateRadiusCircle(lat, lon);
+        
+        // Spots filtern (Kombination aus Radius + Höhe + Typ)
+        applyAllFilters();
+      } else {
+        alert("Kein Ort in Deutschland gefunden.");
+      }
+    })
+    .catch(() => alert("Fehler bei der Suche."));
 }
 
 function showBottomSheet(name, typeInfo, isVerified, lat, lng) {
