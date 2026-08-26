@@ -4,25 +4,25 @@ let radiusCircleLayer = null;
 let currentSearchCenter = null;
 let allSpots = [];
 
-// Lokale Datenbank (Freibäder & Spots in und um Ulm / Deutschland)
 const localDatabase = [
   { id: 1, name: "Olympia-Schwimmhalle München", city: "München", zip: "80809", type: "Hallenbad", height: 10, verified: true, lat: 48.1732, lng: 11.5536 },
   { id: 2, name: "Stadionbad Nürnberg", city: "Nürnberg", zip: "90471", type: "Freibad", height: 10, verified: true, lat: 49.4322, lng: 11.1194 },
   { id: 3, name: "Inselbad Untertürkheim", city: "Stuttgart", zip: "70327", type: "Freibad", height: 10, verified: true, lat: 48.7780, lng: 9.2520 },
   { id: 4, name: "SSV Ulm 1846 Freibad", city: "Ulm", zip: "89073", type: "Freibad", height: 5, verified: true, lat: 48.4011, lng: 9.9876 },
   { id: 5, name: "Freibad Neu-Ulm", city: "Neu-Ulm", zip: "89231", type: "Freibad", height: 10, verified: true, lat: 48.3870, lng: 10.0050 },
-  { id: 6, name: "Waldbad Günzburg", city: "Günzburg", zip: "89312", type: "Freibad", height: 5, verified: true, lat: 48.4520, lng: 10.2740 },
-  { id: 7, name: "Strandbad Wannsee Berlin", city: "Berlin", zip: "14129", type: "See", height: 5, verified: false, lat: 52.4384, lng: 13.1785 },
-  { id: 8, name: "Freibad Prinzenstraße", city: "Berlin", zip: "10969", type: "Freibad", height: 10, verified: true, lat: 52.4965, lng: 13.4116 },
-  { id: 9, name: "Stadionbad Köln", city: "Köln", zip: "50933", type: "Freibad", height: 10, verified: true, lat: 50.9333, lng: 6.8744 }
+  { id: 6, name: "Waldbad Günzburg", city: "Günzburg", zip: "89312", type: "Freibad", height: 5, verified: true, lat: 48.4520, lng: 10.2740 }
 ];
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Leaflet Karte auf Deutschland zentriert initialisieren
+  // Splash Screen nach 1.2s ausblenden
+  setTimeout(() => {
+    const loader = document.getElementById("loadingScreen");
+    if (loader) loader.classList.add("fade-out");
+  }, 1200);
+
   map = L.map("map", { zoomControl: false }).setView([51.1657, 10.4515], 6);
 
   L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-    attribution: '&copy; OpenStreetMap &copy; CARTO',
     maxZoom: 19
   }).addTo(map);
 
@@ -32,12 +32,10 @@ document.addEventListener("DOMContentLoaded", () => {
   allSpots = localDatabase;
   applyAllFilters();
 
-  // Event Listener für Filteränderungen
   document.getElementById("heightFilter").addEventListener("change", applyAllFilters);
   document.getElementById("typeFilter").addEventListener("change", applyAllFilters);
   document.getElementById("verifiedOnlyToggle").addEventListener("change", applyAllFilters);
   
-  // Radius-Änderung verarbeiten
   document.getElementById("radiusFilter").addEventListener("change", () => {
     if (currentSearchCenter) {
       updateRadiusCircle(currentSearchCenter.lat, currentSearchCenter.lng);
@@ -51,7 +49,6 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
-// Haversine-Formel zur Distanzberechnung in Kilometern
 function getDistanceInKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -59,27 +56,21 @@ function getDistanceInKm(lat1, lon1, lat2, lon2) {
   const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
             Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
             Math.sin(dLon / 2) * Math.sin(dLon / 2);
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return R * c;
+  return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
-// Zeichnet den neon-grünen Kreis auf die Karte
 function updateRadiusCircle(lat, lng) {
   const radiusKm = parseFloat(document.getElementById("radiusFilter").value) || 25;
-  const radiusMeters = radiusKm * 1000;
-
-  if (radiusCircleLayer) {
-    map.removeLayer(radiusCircleLayer);
-  }
+  
+  if (radiusCircleLayer) map.removeLayer(radiusCircleLayer);
 
   radiusCircleLayer = L.circle([lat, lng], {
-    radius: radiusMeters,
+    radius: radiusKm * 1000,
     color: "#10b981",
-    weight: 2.5,
-    opacity: 0.95,
+    weight: 2,
     fillColor: "#10b981",
     fillOpacity: 0.08,
-    dashArray: "6, 6"
+    dashArray: "5, 5"
   }).addTo(map);
 
   map.fitBounds(radiusCircleLayer.getBounds(), { padding: [30, 30] });
@@ -108,8 +99,7 @@ function applyAllFilters() {
 
     let matchRadius = true;
     if (currentSearchCenter) {
-      const dist = getDistanceInKm(currentSearchCenter.lat, currentSearchCenter.lng, spot.lat, spot.lng);
-      matchRadius = dist <= maxRadiusKm;
+      matchRadius = getDistanceInKm(currentSearchCenter.lat, currentSearchCenter.lng, spot.lat, spot.lng) <= maxRadiusKm;
     }
 
     return matchHeight && matchType && matchVerified && matchQuery && matchRadius;
@@ -117,22 +107,22 @@ function applyAllFilters() {
 
   filtered.forEach(spot => {
     const marker = L.circleMarker([spot.lat, spot.lng], {
-      radius: 9,
+      radius: 8,
       fillColor: spot.verified ? "#00f2fe" : "#ffb703",
       color: "#ffffff",
-      weight: 2.5,
-      opacity: 1,
-      fillOpacity: 0.95
+      weight: 2,
+      fillOpacity: 0.9
     });
 
     marker.on("click", () => {
-      showBottomSheet(spot.name, `${spot.type} • ${spot.height}m Turm`, spot.verified, spot.lat, spot.lng);
+      const sheet = document.getElementById("bottomSheet");
+      document.getElementById("poolTitle").textContent = spot.name;
+      document.getElementById("poolType").textContent = `${spot.type} • ${spot.height}m Turm`;
+      sheet.classList.add("active");
     });
 
     markersGroup.addLayer(marker);
   });
-
-  return filtered;
 }
 
 function executeSearch() {
@@ -151,27 +141,9 @@ function executeSearch() {
       if (results && results.length > 0) {
         const lat = parseFloat(results[0].lat);
         const lon = parseFloat(results[0].lon);
-        
         currentSearchCenter = { lat, lng: lon };
         updateRadiusCircle(lat, lon);
         applyAllFilters();
-      } else {
-        alert("Kein Ort in Deutschland gefunden.");
       }
-    })
-    .catch(() => alert("Fehler bei der Suche."));
-}
-
-function showBottomSheet(name, typeInfo, isVerified, lat, lng) {
-  const sheet = document.getElementById("bottomSheet");
-  document.getElementById("poolTitle").textContent = name;
-  document.getElementById("poolType").textContent = typeInfo;
-  
-  const badge = document.getElementById("verifiedBadge");
-  badge.textContent = isVerified ? "Verifiziert" : "Unbestätigt";
-  badge.style.background = isVerified ? "rgba(0,242,254,0.15)" : "rgba(255,255,255,0.05)";
-  badge.style.color = isVerified ? "#00f2fe" : "#94a3b8";
-
-  document.getElementById("navBtn").href = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-  sheet.classList.add("active");
+    });
 }
