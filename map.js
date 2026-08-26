@@ -4,7 +4,7 @@ let countryBorderLayer = null;
 let regionBorderLayer = null;
 let allSpots = [];
 
-// Supabase Konfiguration
+// Supabase Konfiguration (Optional)
 const SUPABASE_URL = "DEINE_SUPABASE_URL";
 const SUPABASE_KEY = "DEIN_SUPABASE_ANON_KEY";
 let supabaseClient = null;
@@ -13,28 +13,39 @@ if (typeof supabase !== "undefined" && SUPABASE_URL !== "DEINE_SUPABASE_URL") {
   supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 }
 
+// Lokale deutsche Stammdaten
 const localDatabase = [
-  { id: 1, name: "Olympia-Schwimmhalle München", country: "de", city: "München", zip: "80809", type: "Hallenbad", height: 10, verified: true, lat: 48.1732, lng: 11.5536 },
-  { id: 2, name: "Stadionbad Nürnberg", country: "de", city: "Nürnberg", zip: "90471", type: "Freibad", height: 10, verified: true, lat: 49.4322, lng: 11.1194 },
-  { id: 3, name: "Inselbad Untertürkheim Stuttgart", country: "de", city: "Stuttgart", zip: "70327", type: "Freibad", height: 10, verified: true, lat: 48.7780, lng: 9.2520 },
-  { id: 4, name: "Strandbad Wannsee Berlin", country: "de", city: "Berlin", zip: "14129", type: "See", height: 5, verified: false, lat: 52.4384, lng: 13.1785 },
-  { id: 5, name: "Freibad Prinzenstraße Berlin", country: "de", city: "Berlin", zip: "10969", type: "Freibad", height: 10, verified: true, lat: 52.4965, lng: 13.4116 },
-  { id: 6, name: "Stadionbad Köln", country: "de", city: "Köln", zip: "50933", type: "Freibad", height: 10, verified: true, lat: 50.9333, lng: 6.8744 },
-  { id: 7, name: "Stadthallenbad Wien", country: "at", city: "Wien", zip: "1150", type: "Hallenbad", height: 10, verified: true, lat: 48.2023, lng: 16.3336 },
-  { id: 8, name: "Freibad Prater Wien", country: "at", city: "Wien", zip: "1020", type: "Freibad", height: 5, verified: true, lat: 48.2145, lng: 16.4022 },
-  { id: 9, name: "Hallenbad Oerlikon Zürich", country: "ch", city: "Zürich", zip: "8050", type: "Hallenbad", height: 10, verified: true, lat: 47.4105, lng: 8.5471 }
+  { id: 1, name: "Olympia-Schwimmhalle München", country: "de", state: "Bayern", city: "München", zip: "80809", type: "Hallenbad", height: 10, verified: true, lat: 48.1732, lng: 11.5536 },
+  { id: 2, name: "Stadionbad Nürnberg", country: "de", state: "Bayern", city: "Nürnberg", zip: "90471", type: "Freibad", height: 10, verified: true, lat: 49.4322, lng: 11.1194 },
+  { id: 3, name: "Inselbad Untertürkheim Stuttgart", country: "de", state: "Baden-Württemberg", city: "Stuttgart", zip: "70327", type: "Freibad", height: 10, verified: true, lat: 48.7780, lng: 9.2520 },
+  { id: 4, name: "SSV Ulm Freibad SSV Ulm 1846", country: "de", state: "Baden-Württemberg", city: "Ulm", zip: "89073", type: "Freibad", height: 5, verified: true, lat: 48.4011, lng: 9.9876 },
+  { id: 5, name: "Strandbad Wannsee Berlin", country: "de", state: "Berlin", city: "Berlin", zip: "14129", type: "See", height: 5, verified: false, lat: 52.4384, lng: 13.1785 },
+  { id: 6, name: "Freibad Prinzenstraße Berlin", country: "de", state: "Berlin", city: "Berlin", zip: "10969", type: "Freibad", height: 10, verified: true, lat: 52.4965, lng: 13.4116 },
+  { id: 7, name: "Stadionbad Köln", country: "de", state: "Nordrhein-Westfalen", city: "Köln", zip: "50933", type: "Freibad", height: 10, verified: true, lat: 50.9333, lng: 6.8744 }
 ];
 
-const countrySettings = {
-  de: { lat: 51.1657, lng: 10.4515, zoom: 6, bboxName: "Germany" },
-  at: { lat: 47.5162, lng: 14.5501, zoom: 7, bboxName: "Austria" },
-  ch: { lat: 46.8182, lng: 8.2275, zoom: 8, bboxName: "Switzerland" },
-  fr: { lat: 46.2276, lng: 2.2137, zoom: 6, bboxName: "France" },
-  it: { lat: 41.8719, lng: 12.5674, zoom: 6, bboxName: "Italy" },
-  es: { lat: 40.4637, lng: -3.7492, zoom: 6, bboxName: "Spain" }
+// Liste aller 16 Bundesländer mit Koordinaten & Standard-Start auf Bayern
+window.germanStates = {
+  "Baden-Württemberg": { lat: 48.6616, lng: 9.3501, zoom: 8 },
+  "Bayern": { lat: 48.7904, lng: 11.4976, zoom: 7.5 },
+  "Berlin": { lat: 52.5200, lng: 13.4050, zoom: 10 },
+  "Brandenburg": { lat: 52.4125, lng: 12.5316, zoom: 8 },
+  "Bremen": { lat: 53.0793, lng: 8.8017, zoom: 10 },
+  "Hamburg": { lat: 53.5511, lng: 9.9937, zoom: 10 },
+  "Hessen": { lat: 50.6521, lng: 9.1624, zoom: 8 },
+  "Mecklenburg-Vorpommern": { lat: 53.6127, lng: 12.4296, zoom: 8 },
+  "Niedersachsen": { lat: 52.6367, lng: 9.8451, zoom: 7.5 },
+  "Nordrhein-Westfalen": { lat: 51.4332, lng: 7.6616, zoom: 8 },
+  "Rheinland-Pfalz": { lat: 49.6358, lng: 7.5023, zoom: 8 },
+  "Saarland": { lat: 49.3964, lng: 7.0230, zoom: 9 },
+  "Sachsen": { lat: 51.1045, lng: 13.2017, zoom: 8 },
+  "Sachsen-Anhalt": { lat: 51.9503, lng: 11.6923, zoom: 8 },
+  "Schleswig-Holstein": { lat: 54.2194, lng: 9.6961, zoom: 8 },
+  "Thüringen": { lat: 50.8318, lng: 11.0510, zoom: 8 }
 };
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Deutschland-Zentrum
   map = L.map("map", { zoomControl: false }).setView([51.1657, 10.4515], 6);
 
   L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
@@ -46,16 +57,11 @@ document.addEventListener("DOMContentLoaded", () => {
   L.control.zoom({ position: 'bottomright' }).addTo(map);
 
   loadSpotsData();
+  drawGermanyOutline();
 
   document.getElementById("heightFilter").addEventListener("change", applyAllFilters);
   document.getElementById("typeFilter").addEventListener("change", applyAllFilters);
   document.getElementById("verifiedOnlyToggle").addEventListener("change", applyAllFilters);
-  
-  const countrySelect = document.getElementById("countryFilter");
-  countrySelect.addEventListener("change", () => {
-    updateCountrySelection(countrySelect.value);
-    applyAllFilters();
-  });
 
   document.getElementById("searchBtn").addEventListener("click", executeSearch);
   document.getElementById("searchInput").addEventListener("keydown", (e) => {
@@ -77,91 +83,60 @@ async function loadSpotsData() {
   applyAllFilters();
 }
 
-// 1. Ganzen Staat (Landesgrenze) mit Cyan-Leuchten markieren
-async function updateCountrySelection(countryCode) {
-  const conf = countrySettings[countryCode];
-  if (!conf) return;
-
-  map.setView([conf.lat, conf.lng], conf.zoom);
-
-  if (regionBorderLayer) {
-    map.removeLayer(regionBorderLayer);
-    regionBorderLayer = null;
-  }
-
-  if (countryBorderLayer) {
-    map.removeLayer(countryBorderLayer);
-    countryBorderLayer = null;
-  }
-
+// Zeichnet die Deutschland-Außengrenze (Cyan)
+async function drawGermanyOutline() {
   try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&country=${conf.bboxName}&limit=1`);
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&country=Germany&limit=1`);
     const data = await res.json();
     if (data && data[0] && data[0].geojson) {
       countryBorderLayer = L.geoJSON(data[0].geojson, {
         style: {
           color: "#00f2fe",
           weight: 2,
-          opacity: 0.7,
+          opacity: 0.6,
           fillColor: "#00f2fe",
-          fillOpacity: 0.03
+          fillOpacity: 0.02
         }
       }).addTo(map);
     }
   } catch (e) {
-    console.log("Ländergrenze konnte nicht geladen werden.");
+    console.log("Deutschland-Grenze konnte nicht geladen werden.");
   }
 }
 
-// 2. Zuverlässiges Laden des echten Bundeslandes / Kantons (z.B. "Baden-Württemberg")
-async function highlightStateForLocation(lat, lon, countryCode) {
+// Hebt das gewählte Bundesland grün hervor (z. B. Bayern)
+window.highlightStateByName = async function(stateName) {
+  const conf = window.germanStates[stateName];
+  if (conf) {
+    map.setView([conf.lat, conf.lng], conf.zoom);
+  }
+
   if (regionBorderLayer) {
     map.removeLayer(regionBorderLayer);
     regionBorderLayer = null;
   }
 
   try {
-    // Wir fragen Nominatim explizit nach adressdetails ab, um an den Namen des Bundeslandes/Kantons zu kommen
-    const revRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=6`);
-    const revData = await revRes.json();
-    
-    let stateName = "";
-    if (revData && revData.address) {
-      // In DE/AT/CH heißt das Feld in der Adresse meist 'state'
-      stateName = revData.address.state || revData.address.region || "";
-    }
+    const searchRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&q=${encodeURIComponent(stateName)}&countrycodes=de&limit=1`);
+    const searchData = await searchRes.json();
 
-    if (stateName) {
-      // Jetzt suchen wir exakt nach diesem Bundesland, damit wir das saubere GeoJSON-Polygon der Landesfläche bekommen
-      const searchRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&q=${encodeURIComponent(stateName)}&countrycodes=${countryCode}&limit=1`);
-      const searchData = await searchRes.json();
-
-      if (searchData && searchData[0] && searchData[0].geojson) {
-        regionBorderLayer = L.geoJSON(searchData[0].geojson, {
-          style: {
-            color: "#10b981", // Sattes Neon-Grün für das Bundesland / den Kanton
-            weight: 3,
-            opacity: 0.9,
-            fillColor: "#10b981",
-            fillOpacity: 0.06
-          }
-        }).addTo(map);
-      }
+    if (searchData && searchData[0] && searchData[0].geojson) {
+      regionBorderLayer = L.geoJSON(searchData[0].geojson, {
+        style: {
+          color: "#10b981", // Emerald Grün
+          weight: 3,
+          opacity: 0.9,
+          fillColor: "#10b981",
+          fillOpacity: 0.08
+        }
+      }).addTo(map);
     }
   } catch (e) {
-    console.log("Bundesland-Grenze konnte nicht geladen werden.");
+    console.log("Bundesland-Umrandung konnte nicht geladen werden.");
   }
-}
-
-window.initMapForCountry = function(countryCode) {
-  const select = document.getElementById("countryFilter");
-  select.value = countryCode;
-  updateCountrySelection(countryCode);
-  applyAllFilters();
 };
 
 function applyAllFilters() {
-  const country = document.getElementById("countryFilter").value;
   const minHeight = parseFloat(document.getElementById("heightFilter").value) || 0;
   const type = document.getElementById("typeFilter").value;
   const verifiedOnly = document.getElementById("verifiedOnlyToggle").checked;
@@ -170,16 +145,15 @@ function applyAllFilters() {
   markersGroup.clearLayers();
 
   const filtered = allSpots.filter(spot => {
-    const matchCountry = !country || spot.country === country;
     const matchHeight = (spot.height || 0) >= minHeight;
     const matchType = type === "all" || spot.type === type;
     const matchVerified = !verifiedOnly || spot.verified === true;
-    const matchZoomQuery = !query || 
-                           spot.name.toLowerCase().includes(query) || 
-                           spot.city.toLowerCase().includes(query) || 
-                           (spot.zip && spot.zip.includes(query));
+    const matchQuery = !query || 
+                       spot.name.toLowerCase().includes(query) || 
+                       spot.city.toLowerCase().includes(query) || 
+                       (spot.zip && spot.zip.includes(query));
 
-    return matchCountry && matchHeight && matchType && matchVerified && matchZoomQuery;
+    return matchHeight && matchType && matchVerified && matchQuery;
   });
 
   filtered.forEach(spot => {
@@ -204,33 +178,34 @@ function applyAllFilters() {
 
 function executeSearch() {
   const query = document.getElementById("searchInput").value.trim();
-  const country = document.getElementById("countryFilter").value;
   const filtered = applyAllFilters();
 
   if (query !== "") {
     if (filtered.length > 0) {
       const target = filtered[0];
-      map.setView([target.lat, target.lng], 10);
-      highlightStateForLocation(target.lat, target.lng, country);
+      map.setView([target.lat, target.lng], 12);
+      if (target.state) window.highlightStateByName(target.state);
     } else {
-      // PLZ oder Stadt-Suche (z.B. Ulm) via Nominatim
-      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=${country}`)
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=de`)
         .then(res => res.json())
         .then(results => {
           if (results && results.length > 0) {
             const lat = parseFloat(results[0].lat);
             const lon = parseFloat(results[0].lon);
+            map.setView([lat, lon], 12);
             
-            // Auf den gesuchten Ort zoomen
-            map.setView([lat, lon], 10);
-            
-            // Jetzt exakt das übergeordnete Bundesland/Kanton grün umranden lassen!
-            highlightStateForLocation(lat, lon, country);
+            // Zugehöriges Bundesland auflösen
+            fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=6`)
+              .then(r => r.json())
+              .then(data => {
+                if (data && data.address && data.address.state) {
+                  window.highlightStateByName(data.address.state);
+                }
+              });
           } else {
-            alert("Kein Ort gefunden. Du kannst diesen Spot aber über den '+' Button anlegen!");
+            alert("Kein Ort in Deutschland gefunden.");
           }
-        })
-        .catch(() => alert("Fehler bei der Verbindung."));
+        });
     }
   }
 }
