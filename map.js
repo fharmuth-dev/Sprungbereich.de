@@ -19,13 +19,13 @@ const localDatabase = [
 ];
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Loading Screen nach Animation sanft ausblenden (~3.5 Sek Lesezeit)
+  // Loading Screen ausblenden
   setTimeout(() => {
     const loader = document.getElementById("loadingScreen");
     if (loader) loader.classList.add("fade-out");
   }, 3500);
 
-  // Karte beim Start auf ganz Deutschland fokussieren
+  // Map initialisieren
   map = L.map("map", { zoomControl: false }).setView([51.1657, 10.4515], 6);
 
   L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
@@ -37,10 +37,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   allSpots = localDatabase;
 
-  // Deutschland-Grenze dauerhaft rendern
+  // Deutschland-Grenze rendern
   drawGermanyOutline();
 
-  // Event Listener
+  // Event Listener für Filter
   document.getElementById("heightFilter").addEventListener("change", applyAllFilters);
   document.getElementById("typeFilter").addEventListener("change", applyAllFilters);
   document.getElementById("verifiedOnlyToggle").addEventListener("change", applyAllFilters);
@@ -57,11 +57,26 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.key === "Enter") executeSearch();
   });
 
-  // Initial alle Spots anzeigen
+  // UX FIX 1: Schließen-Button (X) Event
+  document.getElementById("closeSheetBtn").addEventListener("click", closeBottomSheet);
+
+  // UX FIX 2: Klick auf die Karte schließt das Detail-Panel
+  map.on("click", () => {
+    closeBottomSheet();
+  });
+
+  // UX FIX 3: Handy-Zurück-Taste abfangen
+  window.addEventListener("popstate", () => {
+    const sheet = document.getElementById("bottomSheet");
+    if (sheet.classList.contains("active")) {
+      closeBottomSheet(false); // Schließen ohne echten Verlauf zu ändern
+    }
+  });
+
+  // Initial Filter anwenden
   applyAllFilters();
 });
 
-// Zeichnet die permanente Deutschland-Grenze
 function drawGermanyOutline() {
   fetch(`https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&country=Germany&limit=1`)
     .then(res => res.json())
@@ -90,17 +105,12 @@ function getDistanceInKm(lat1, lon1, lat2, lon2) {
   return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
-// Zeichnet den Radius-Kreis UND setzt die Pin-Nadel im Mittelpunkt
 function updateRadiusAndPin(lat, lng) {
   const radiusKm = parseFloat(document.getElementById("radiusFilter").value) || 25;
   
-  // Alten Kreis entfernen
   if (radiusCircleLayer) map.removeLayer(radiusCircleLayer);
-  
-  // Alte Pin-Nadel entfernen
   if (centerPinMarker) map.removeLayer(centerPinMarker);
 
-  // 1. Neon-Grüner Radius-Kreis
   radiusCircleLayer = L.circle([lat, lng], {
     radius: radiusKm * 1000,
     color: "#10b981",
@@ -110,11 +120,10 @@ function updateRadiusAndPin(lat, lng) {
     dashArray: "5, 5"
   }).addTo(map);
 
-  // 2. Mittelpunkt Pin-Nadel (Eigenes SVG Icon)
   const pinIcon = L.divIcon({
     className: 'center-pin-wrapper',
     html: `
-      <div class="center-pin" style="width:24px; height:24px; background:#10b981; border:3px solid #ffffff; border-radius:50%; box-shadow:0 0 15px #10b981; display:flex; align-items:center; justify-center;">
+      <div class="center-pin" style="width:24px; height:24px; background:#10b981; border:3px solid #ffffff; border-radius:50%; box-shadow:0 0 15px #10b981; display:flex; align-items:center; justify-content:center;">
         <div style="width:6px; height:6px; background:#0b1120; border-radius:50%; margin:auto;"></div>
       </div>
     `,
@@ -123,8 +132,6 @@ function updateRadiusAndPin(lat, lng) {
   });
 
   centerPinMarker = L.marker([lat, lng], { icon: pinIcon }).addTo(map);
-
-  // Ansicht auf den Radius-Bereich ausrichten
   map.fitBounds(radiusCircleLayer.getBounds(), { padding: [30, 30] });
 }
 
@@ -167,14 +174,45 @@ function applyAllFilters() {
     });
 
     marker.on("click", () => {
-      const sheet = document.getElementById("bottomSheet");
-      document.getElementById("poolTitle").textContent = spot.name;
-      document.getElementById("poolType").textContent = `${spot.type} • ${spot.height}m Turm`;
-      sheet.classList.add("active");
+      openBottomSheet(spot);
     });
 
     markersGroup.addLayer(marker);
   });
+}
+
+function openBottomSheet(spot) {
+  const sheet = document.getElementById("bottomSheet");
+  const badge = document.getElementById("verifiedBadge");
+  const navBtn = document.getElementById("navBtn");
+
+  document.getElementById("poolTitle").textContent = spot.name;
+  document.getElementById("poolType").textContent = `${spot.type} • Max. ${spot.height}m Turm`;
+  
+  if (spot.verified) {
+    badge.textContent = "✅ Offiziell Verifiziert";
+    badge.className = "badge verified";
+  } else {
+    badge.textContent = "🟡 Community-Eintrag (Ungeprüft)";
+    badge.className = "badge community";
+  }
+
+  navBtn.href = `https://www.google.com/maps/dir/?api=1&destination=${spot.lat},${spot.lng}`;
+
+  sheet.classList.add("active");
+
+  // Eintrag in Verlaufs-Historie pushen, um Handy-Zurück abfangen zu können
+  history.pushState({ sheetOpen: true }, "");
+}
+
+function closeBottomSheet(triggerPopstate = true) {
+  const sheet = document.getElementById("bottomSheet");
+  if (sheet.classList.contains("active")) {
+    sheet.classList.remove("active");
+    if (triggerPopstate && history.state && history.state.sheetOpen) {
+      history.back();
+    }
+  }
 }
 
 function executeSearch() {
