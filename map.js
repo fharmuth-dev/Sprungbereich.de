@@ -2,7 +2,7 @@
 const SUPABASE_URL = "https://bmngqythtalsddqtfuib.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_TPwfBJvsktOEDPZmQAcG0w_AnYnaQeW";
 
-// Supabase Client initialisieren (Variable umbenannt um Namenskonflikte zu vermeiden)
+// Supabase Client initialisieren
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let map;
@@ -11,6 +11,9 @@ let countryBorderLayer = null;
 let radiusCircleLayer = null;
 let centerPinMarker = null;
 let currentSearchCenter = null;
+
+let tempMarker = null;        // Temporärer Marker für die Standort-Bestätigung
+let tempSelectedLatLng = null; // Speichert finale Koordinaten für das Formular
 
 let allSpots = [];
 
@@ -50,18 +53,30 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.getElementById("closeSheetBtn").addEventListener("click", () => closeBottomSheet(true));
-  document.getElementById("openAddModalBtn").addEventListener("click", openAddModal);
+  
+  // Über den normalen Button ("Spot hinzufügen") öffnen ohne Kartenauswahl
+  document.getElementById("openAddModalBtn").addEventListener("click", () => {
+    removeTempMarker();
+    tempSelectedLatLng = null;
+    openAddModal();
+  });
+  
   document.getElementById("closeAddModalBtn").addEventListener("click", closeAddModal);
-
   document.getElementById("addSpotForm").addEventListener("submit", handleAddSpotSubmit);
 
-  map.on("click", () => {
-    closeBottomSheet(true);
+  // Klick auf die Karte: Setzt temporären Pin mit Bestätigungs-Popup
+  map.on("click", (e) => {
+    const sheet = document.getElementById("bottomSheet");
+    if (sheet && sheet.classList.contains("active")) {
+      closeBottomSheet(true);
+      return;
+    }
+    placeTempMarker(e.latlng);
   });
 
   window.addEventListener("popstate", () => {
     const sheet = document.getElementById("bottomSheet");
-    if (sheet.classList.contains("active")) {
+    if (sheet && sheet.classList.contains("active")) {
       closeBottomSheet(false);
     }
     closeAddModal();
@@ -70,6 +85,61 @@ document.addEventListener("DOMContentLoaded", () => {
   // Spots direkt aus der Supabase-Datenbank laden
   loadSpotsFromSupabase();
 });
+
+// Temporären Pin auf der Karte setzen (verschiebbaren Marker anzeigen)
+function placeTempMarker(latlng) {
+  removeTempMarker(); // Vorherigen Pin entfernen falls vorhanden
+
+  tempSelectedLatLng = latlng;
+
+  // Pin erstellen, der verschiebbar (draggable) ist
+  tempMarker = L.marker(latlng, { draggable: true }).addTo(map);
+
+  const popupContent = document.createElement("div");
+  popupContent.style.textAlign = "center";
+  popupContent.style.padding = "4px";
+  popupContent.innerHTML = `
+    <p style="margin:0 0 8px 0; font-size:13px; font-weight:bold; color:#0b1120;">Ist das der richtige Ort?</p>
+    <div style="display:flex; gap:6px; justify-content:center;">
+      <button id="confirmSpotBtn" style="background:#10b981; color:#fff; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:12px;">Ja, Spot eintragen</button>
+      <button id="cancelSpotBtn" style="background:#ef4444; color:#fff; border:none; padding:6px 10px; border-radius:6px; cursor:pointer; font-size:12px;">Abbrechen</button>
+    </div>
+  `;
+
+  tempMarker.bindPopup(popupContent, { closeButton: false }).openPopup();
+
+  // Position nach dem Verschieben aktualisieren
+  tempMarker.on("dragend", (event) => {
+    tempSelectedLatLng = event.target.getLatLng();
+    tempMarker.openPopup();
+  });
+
+  // Event Listener für die Popup-Buttons
+  setTimeout(() => {
+    const confirmBtn = document.getElementById("confirmSpotBtn");
+    const cancelBtn = document.getElementById("cancelSpotBtn");
+
+    if (confirmBtn) {
+      confirmBtn.addEventListener("click", () => {
+        openAddModal();
+      });
+    }
+
+    if (cancelBtn) {
+      cancelBtn.addEventListener("click", () => {
+        removeTempMarker();
+      });
+    }
+  }, 100);
+}
+
+// Hilfsfunktion: Entfernt den temporären Auswahl-Pin
+function removeTempMarker() {
+  if (tempMarker) {
+    map.removeLayer(tempMarker);
+    tempMarker = null;
+  }
+}
 
 // Spots aus Supabase laden & auf Map-Format mappen
 async function loadSpotsFromSupabase() {
@@ -83,7 +153,6 @@ async function loadSpotsFromSupabase() {
       return;
     }
 
-    // Felder aus Supabase an das lokale Format anpassen
     allSpots = data.map(spot => ({
       id: spot.id,
       name: spot.title,
@@ -105,6 +174,7 @@ async function loadSpotsFromSupabase() {
 
 function renderGraffitiTitle(text) {
   const container = document.getElementById("dynamicGraffitiTitle");
+  if (!container) return;
   container.innerHTML = "";
   
   const fontSizes = [22, 18, 16, 17, 19, 21, 17, 15, 18, 20, 16, 18, 17, 19, 21, 16, 18, 20, 22, 17, 19];
@@ -251,10 +321,12 @@ function openAddModal() {
 
 function closeAddModal() {
   document.getElementById("addSpotModal").classList.remove("active");
+  removeTempMarker();
+  tempSelectedLatLng = null;
 }
 
-/* Formular-Submit mit Supabase-Speicherung */
-function handleAddSpotSubmit(e) {
+/* Formular-Submit mit exakter Positions-Speicherung */
+async function handleAddSpotSubmit(e) {
   e.preventDefault();
 
   const name = document.getElementById("newSpotName").value.trim();
@@ -279,47 +351,57 @@ function handleAddSpotSubmit(e) {
 
   if (!name || !city) return;
 
-  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city + ", Germany")}`)
-    .then(res => res.json())
-    .then(async results => {
-      let lat = currentSearchCenter ? currentSearchCenter.lat : 51.1657;
-      let lng = currentSearchCenter ? currentSearchCenter.lng : 10.4515;
+  let lat = 51.1657;
+  let lng = 10.4515;
 
+  // Geklickte Koordinaten haben Vorrang
+  if (tempSelectedLatLng) {
+    lat = tempSelectedLatLng.lat;
+    lng = tempSelectedLatLng.lng;
+  } else {
+    // Falls kein Punkt geklickt wurde, Ort/Adresse über Geocoding abfragen
+    try {
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city + ", Germany")}`);
+      const results = await res.json();
       if (results && results.length > 0) {
         lat = parseFloat(results[0].lat);
         lng = parseFloat(results[0].lon);
       }
+    } catch (err) {
+      console.error("Geocoding Fehler:", err);
+    }
+  }
 
-      // In Supabase einfügen (Standard-Status ist 'pending')
-      const { data, error } = await supabaseClient
-        .from('spots')
-        .insert([
-          {
-            title: name,
-            description: city,
-            type: type,
-            height: maxHeight,
-            facilities: selectedLabels,
-            latitude: lat,
-            longitude: lng,
-            status: 'pending'
-          }
-        ])
-        .select();
-
-      if (error) {
-        console.error("Fehler beim Speichern in Supabase:", error);
-        alert("Fehler beim Speichern: " + error.message);
-        return;
+  // In Supabase einfügen
+  const { data, error } = await supabaseClient
+    .from('spots')
+    .insert([
+      {
+        title: name,
+        description: city,
+        type: type,
+        height: maxHeight,
+        facilities: selectedLabels,
+        latitude: lat,
+        longitude: lng,
+        status: 'pending'
       }
+    ])
+    .select();
 
-      // Daten neu aus Supabase ziehen
-      await loadSpotsFromSupabase();
+  if (error) {
+    console.error("Fehler beim Speichern in Supabase:", error);
+    alert("Fehler beim Speichern: " + error.message);
+    return;
+  }
 
-      closeAddModal();
-      document.getElementById("addSpotForm").reset();
-      map.setView([lat, lng], 12);
-    });
+  // Aufräumen & Daten neu laden
+  removeTempMarker();
+  await loadSpotsFromSupabase();
+
+  closeAddModal();
+  document.getElementById("addSpotForm").reset();
+  map.setView([lat, lng], 14);
 }
 
 function openBottomSheet(spot) {
