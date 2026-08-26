@@ -1,6 +1,7 @@
 let map;
 let markersGroup;
 let countryBorderLayer = null;
+let regionBorderLayer = null;
 let allSpots = [];
 
 // Supabase Konfiguration
@@ -76,36 +77,68 @@ async function loadSpotsData() {
   applyAllFilters();
 }
 
-// Funktion für den Sektor-Wechsel inklusive GeoJSON-Länderumriss
+// 1. Ganzen Staat (Landesgrenze) mit Cyan-Leuchten markieren
 async function updateCountrySelection(countryCode) {
   const conf = countrySettings[countryCode];
   if (!conf) return;
 
   map.setView([conf.lat, conf.lng], conf.zoom);
 
-  // Vorherigen Umriss entfernen, falls vorhanden
+  // Regionen-Grenze beim Länderwechsel zurücksetzen
+  if (regionBorderLayer) {
+    map.removeLayer(regionBorderLayer);
+    regionBorderLayer = null;
+  }
+
   if (countryBorderLayer) {
     map.removeLayer(countryBorderLayer);
     countryBorderLayer = null;
   }
 
-  // Live die offiziellen GeoJSON-Grenzen von Nominatim laden, um den Sektor einzukreisen
   try {
     const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&country=${conf.bboxName}&limit=1`);
     const data = await res.json();
     if (data && data[0] && data[0].geojson) {
       countryBorderLayer = L.geoJSON(data[0].geojson, {
         style: {
-          color: "#00f2fe",
+          color: "#00f2fe", // Cyan für den Staat
           weight: 2,
-          opacity: 0.8,
+          opacity: 0.7,
           fillColor: "#00f2fe",
-          fillOpacity: 0.04
+          fillOpacity: 0.03
         }
       }).addTo(map);
     }
   } catch (e) {
-    console.log("Konnte Sektor-Grenzen nicht laden, nutze Standard-Ansicht.");
+    console.log("Ländergrenze konnte nicht geladen werden.");
+  }
+}
+
+// 2. Dynamisches Bundesland / Kanton / Region (z.B. Ulm -> Baden-Württemberg) in Grün/Neon hervorheben
+async function highlightRegionForLocation(lat, lon) {
+  if (regionBorderLayer) {
+    map.removeLayer(regionBorderLayer);
+    regionBorderLayer = null;
+  }
+
+  try {
+    // Reverse Geocoding mit Polygon-Daten, um exakt das Bundesland/den Kanton zu ermitteln
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&polygon_geojson=1`);
+    const data = await res.json();
+    
+    if (data && data.geojson) {
+      regionBorderLayer = L.geoJSON(data.geojson, {
+        style: {
+          color: "#10b981", // Sattes Emerald-Grün für das Bundesland / die Region
+          weight: 3,
+          opacity: 0.9,
+          fillColor: "#10b981",
+          fillOpacity: 0.08 // Subtiler farbiger Teppich über dem Bundesland
+        }
+      }).addTo(map);
+    }
+  } catch (e) {
+    console.log("Region-Grenze konnte nicht geladen werden.");
   }
 }
 
@@ -130,12 +163,12 @@ function applyAllFilters() {
     const matchHeight = (spot.height || 0) >= minHeight;
     const matchType = type === "all" || spot.type === type;
     const matchVerified = !verifiedOnly || spot.verified === true;
-    const matchQuery = !query || 
-                       spot.name.toLowerCase().includes(query) || 
-                       spot.city.toLowerCase().includes(query) || 
-                       (spot.zip && spot.zip.includes(query));
+    const matchZoomQuery = !query || 
+                           spot.name.toLowerCase().includes(query) || 
+                           spot.city.toLowerCase().includes(query) || 
+                           (spot.zip && spot.zip.includes(query));
 
-    return matchCountry && matchHeight && matchType && matchVerified && matchQuery;
+    return matchCountry && matchHeight && matchType && matchVerified && matchZoomQuery;
   });
 
   filtered.forEach(spot => {
@@ -165,16 +198,26 @@ function executeSearch() {
 
   if (query !== "") {
     if (filtered.length > 0) {
-      map.setView([filtered[0].lat, filtered[0].lng], 13);
+      // Wenn ein Spot direkt matcht, dorthin springen und dessen Region anzeigen
+      const target = filtered[0];
+      map.setView([target.lat, target.lng], 11);
+      highlightRegionForLocation(target.lat, target.lng);
     } else {
-      // PLZ oder Stadt-Suche (z.B. Ulm) via Nominatim
+      // PLZ oder Stadt-Suche (z.B. Ulm) via Nominatim auflösen
       fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=${country}`)
         .then(res => res.json())
         .then(results => {
           if (results && results.length > 0) {
-            map.setView([parseFloat(results[0].lat), parseFloat(results[0].lon)], 13);
+            const lat = parseFloat(results[0].lat);
+            const lon = parseFloat(results[0].lon);
+            
+            // Auf den gesuchten Ort zoomen
+            map.setView([lat, lon], 11);
+            
+            // Automatisch die grüne Bundesland-/Regions-Umrandung laden!
+            highlightRegionForLocation(lat, lon);
           } else {
-            alert("Kein Spot in diesem Gebiet gefunden. Trage den Spot gerne über den '+' Button ein!");
+            alert("Kein Ort gefunden. Du kannst diesen Spot aber über den '+' Button anlegen!");
           }
         })
         .catch(() => alert("Fehler bei der Verbindung."));
