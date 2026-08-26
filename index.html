@@ -18,14 +18,16 @@
 </head>
 <body>
 
-  <!-- Loading Screen mit Story Script Font -->
+  <!-- Loading Screen mit Text-Animation -->
   <div id="loadingScreen" class="loading-screen">
     <div class="splash-content">
-      <h1 class="brand-title">Sprungbereich.de</h1>
-      <p class="brand-claim">
+      <h1 class="brand-title animated-title">Sprungbereich.de</h1>
+      <p class="brand-claim animated-claim">
         Die intuitive Community Map für alle Turmspringer & Klippenspringer.
       </p>
-      <div class="spinner"></div>
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill"></div>
+      </div>
     </div>
   </div>
 
@@ -39,7 +41,7 @@
     <div class="search-row">
       <div class="field-group flex-grow">
         <span class="field-label">Ort / PLZ</span>
-        <input type="text" id="searchInput" placeholder="z. B. 89073 oder Ulm">
+        <input type="text" id="searchInput" value="10117" placeholder="z. B. 10117 oder Berlin">
       </div>
       
       <div class="field-group">
