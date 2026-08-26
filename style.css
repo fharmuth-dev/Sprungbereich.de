@@ -1,7 +1,7 @@
 :root {
   --bg-core: #060913;
-  --glass-surface: rgba(13, 20, 38, 0.78);
-  --glass-surface-hover: rgba(19, 29, 54, 0.88);
+  --glass-surface: rgba(13, 20, 38, 0.82);
+  --glass-surface-hover: rgba(19, 29, 54, 0.9);
   --glass-border: rgba(255, 255, 255, 0.08);
   --glass-border-focus: rgba(0, 242, 254, 0.4);
   
@@ -33,7 +33,44 @@ body, html {
   color: var(--text-main);
 }
 
-/* --- Immersive 2026 Splash Screen --- */
+/* --- Globaler Sprachschalter (Oben Rechts) --- */
+.lang-switch-global {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--glass-surface);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--glass-border);
+  padding: 6px 12px;
+  border-radius: 30px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.lang-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.lang-btn.active {
+  color: var(--accent-cyan);
+}
+
+.lang-divider {
+  color: rgba(255,255,255,0.2);
+  font-size: 0.75rem;
+}
+
+/* --- Splash Screen --- */
 .splash-screen {
   position: fixed;
   inset: 0;
@@ -57,7 +94,7 @@ body, html {
 .splash-content {
   position: relative;
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -76,7 +113,6 @@ body, html {
   font-size: 2rem;
   box-shadow: 0 0 30px rgba(0,242,254,0.15);
   margin-bottom: 20px;
-  backdrop-filter: blur(10px);
 }
 
 .splash-title {
@@ -93,10 +129,10 @@ body, html {
 }
 
 .splash-subtitle {
-  font-size: 0.9rem;
+  font-size: 0.88rem;
   color: var(--text-muted);
   margin-top: 6px;
-  margin-bottom: 32px;
+  margin-bottom: 28px;
 }
 
 .splash-country-card {
@@ -115,7 +151,7 @@ body, html {
 .select-wrapper {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   text-align: left;
 }
 
@@ -127,18 +163,47 @@ body, html {
   letter-spacing: 0.5px;
 }
 
-.splash-country-card select {
+.select-wrapper input {
   width: 100%;
-  padding: 14px 16px;
+  padding: 12px 14px;
   background: rgba(6, 9, 19, 0.6);
   border: 1px solid var(--glass-border);
   border-radius: var(--radius-md);
-  color: var(--accent-cyan);
-  font-size: 1rem;
-  font-weight: 600;
+  color: #fff;
+  font-size: 0.95rem;
   outline: none;
-  appearance: none;
+}
+
+.select-wrapper input:focus {
+  border-color: var(--glass-border-focus);
+}
+
+/* Bundesland Karussell & Vorschlagsliste */
+.state-carousel {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 6px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--glass-border) transparent;
+}
+
+.state-pill {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border);
+  color: var(--text-main);
+  padding: 8px 14px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  white-space: nowrap;
   cursor: pointer;
+  transition: all 0.2s;
+}
+
+.state-pill.active, .state-pill:hover {
+  background: rgba(0, 242, 254, 0.15);
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
 }
 
 .btn-primary-start {
@@ -156,7 +221,7 @@ body, html {
   justify-content: center;
   gap: 8px;
   box-shadow: 0 4px 20px rgba(0, 242, 254, 0.3);
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s;
+  transition: transform 0.2s;
 }
 
 .btn-primary-start:active {
@@ -180,7 +245,6 @@ body, html {
   z-index: 1000;
   background: var(--glass-surface);
   backdrop-filter: blur(24px);
-  -webkit-backdrop-filter: blur(24px);
   border: 1px solid var(--glass-border);
   padding: 16px;
   border-radius: var(--radius-lg);
@@ -209,7 +273,6 @@ body, html {
 .site-title {
   font-size: 1rem;
   font-weight: 800;
-  letter-spacing: -0.3px;
 }
 
 .site-title span {
@@ -239,20 +302,6 @@ body, html {
   border-radius: var(--radius-md);
   font-size: 0.88rem;
   outline: none;
-  transition: border-color 0.2s;
-}
-
-.glass-select:focus, .input-container input:focus {
-  border-color: var(--glass-border-focus);
-}
-
-.country-pill {
-  width: 75px;
-  padding: 10px 8px;
-  font-weight: 600;
-  color: var(--accent-cyan);
-  text-align: center;
-  cursor: pointer;
 }
 
 .input-container {
@@ -263,10 +312,6 @@ body, html {
 .input-container input {
   width: 100%;
   padding: 10px 14px;
-}
-
-.input-container input::placeholder {
-  color: rgba(148, 163, 184, 0.6);
 }
 
 .btn-search-glow {
@@ -280,12 +325,6 @@ body, html {
   color: #060913;
   cursor: pointer;
   flex-shrink: 0;
-  box-shadow: 0 0 15px rgba(0,242,254,0.25);
-  transition: transform 0.15s;
-}
-
-.btn-search-glow:active {
-  transform: scale(0.92);
 }
 
 .filter-row {
@@ -305,7 +344,6 @@ body, html {
   display: flex;
   align-items: center;
   margin-top: 2px;
-  padding-left: 2px;
 }
 
 .toggle-container {
@@ -315,7 +353,6 @@ body, html {
   cursor: pointer;
   font-size: 0.75rem;
   color: var(--text-muted);
-  user-select: none;
 }
 
 .toggle-container input {
@@ -351,11 +388,7 @@ body, html {
   transform: translateX(14px);
 }
 
-.toggle-text {
-  font-weight: 500;
-}
-
-/* --- Floating Action Button --- */
+/* Floating Action Button */
 .fab-btn {
   position: absolute;
   bottom: 28px;
@@ -369,18 +402,12 @@ body, html {
   justify-content: center;
   color: #060913;
   font-size: 2rem;
-  font-weight: 400;
   text-decoration: none;
   z-index: 1000;
   box-shadow: 0 8px 25px rgba(0, 242, 254, 0.4);
-  transition: transform 0.2s;
 }
 
-.fab-btn:active {
-  transform: scale(0.92);
-}
-
-/* --- Bottom Sheet --- */
+/* Bottom Sheet */
 .bottom-sheet {
   position: absolute;
   bottom: -320px;
@@ -388,13 +415,11 @@ body, html {
   width: 100%;
   background: var(--glass-surface);
   backdrop-filter: blur(30px);
-  -webkit-backdrop-filter: blur(30px);
   border-top: 1px solid var(--glass-border);
   border-radius: 24px 24px 0 0;
   padding: 16px 20px 28px 20px;
   z-index: 1001;
   transition: bottom 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-  box-shadow: 0 -10px 40px rgba(0,0,0,0.6);
 }
 
 .bottom-sheet.active {
@@ -416,22 +441,12 @@ body, html {
 }
 
 .pill-badge {
-  display: inline-block;
   font-size: 0.7rem;
   font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
   color: var(--accent-cyan);
   background: rgba(0, 242, 254, 0.1);
   padding: 3px 8px;
   border-radius: 6px;
-  margin-bottom: 6px;
-}
-
-.sheet-top h2 {
-  font-size: 1.15rem;
-  font-weight: 700;
-  letter-spacing: -0.3px;
 }
 
 .badge-verified {
@@ -461,7 +476,6 @@ body, html {
   background: var(--accent-gradient);
   color: #060913;
   font-weight: 700;
-  font-size: 0.9rem;
   padding: 14px;
   border-radius: var(--radius-md);
   text-decoration: none;
@@ -469,7 +483,6 @@ body, html {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  box-shadow: 0 4px 15px rgba(0,242,254,0.25);
 }
 
 .btn-action-secondary {
@@ -478,16 +491,10 @@ body, html {
   border: 1px solid var(--glass-border);
   color: var(--text-main);
   font-weight: 600;
-  font-size: 0.85rem;
   padding: 14px;
   border-radius: var(--radius-md);
   text-decoration: none;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background 0.2s;
-}
-
-.btn-action-secondary:hover {
-  background: rgba(255,255,255,0.1);
 }
