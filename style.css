@@ -13,7 +13,7 @@ body, html {
   color: #fff;
 }
 
-/* Loading Screen & Animationen */
+/* Loading Screen */
 .loading-screen {
   position: fixed;
   inset: 0;
@@ -80,10 +80,7 @@ body, html {
 }
 
 @keyframes fadeInUp {
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @keyframes loadProgress {
@@ -168,9 +165,9 @@ body, html {
   box-shadow: 0 0 6px rgba(0,0,0,0.5);
 }
 
-.dot-freibad { background: #ffd166; }  /* Gelb */
-.dot-hallenbad { background: #a855f7; } /* Lila */
-.dot-see { background: #00f2fe; }       /* Blau */
+.dot-freibad { background: #ffd166; }
+.dot-hallenbad { background: #a855f7; }
+.dot-see { background: #00f2fe; }
 
 .legend-text {
   font-size: 11px;
@@ -289,6 +286,191 @@ body, html {
   background: #0b1120;
 }
 
+/* =========================================
+   ARCADE / SKATE 3 STYLE BANNER (CTA)
+   ========================================= */
+.arcade-cta-card {
+  position: absolute;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) rotate(-1deg);
+  z-index: 1000;
+  width: calc(100% - 32px);
+  max-width: 420px;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(16px);
+  border: 2px solid #00f2fe;
+  box-shadow: 0 0 20px rgba(0, 242, 254, 0.35), 0 10px 25px rgba(0,0,0,0.6);
+  border-radius: 16px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.2s;
+  pointer-events: auto;
+}
+
+.arcade-cta-card:hover {
+  transform: translateX(-50%) rotate(0deg) scale(1.03);
+  box-shadow: 0 0 30px rgba(255, 0, 127, 0.5), 0 12px 30px rgba(0,0,0,0.8);
+  border-color: #ff007f;
+}
+
+.arcade-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.arcade-title {
+  font-family: 'Sedgwick Ave', cursive;
+  line-height: 1.1;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+
+/* Dynamische Graffiti-Buchstaben */
+.g-letter {
+  display: inline-block;
+  font-family: 'Sedgwick Ave', cursive;
+  background: linear-gradient(180deg, #ff007f, #ffd166, #00f2fe);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+  transition: transform 0.2s;
+}
+
+.arcade-sub {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 2px;
+  font-weight: 500;
+}
+
+.arcade-btn-wrapper {
+  flex-shrink: 0;
+}
+
+.arcade-btn-glow {
+  background: linear-gradient(135deg, #ff007f, #7928ca);
+  color: #fff;
+  font-family: 'Sedgwick Ave', cursive;
+  font-size: 13px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  box-shadow: 0 0 10px rgba(255, 0, 127, 0.6);
+  letter-spacing: 0.5px;
+  display: inline-block;
+}
+
+/* =========================================
+   ADD SPOT MODAL (MODAL-FENSTER)
+   ========================================= */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(11, 17, 32, 0.85);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.arcade-modal-style {
+  width: 100%;
+  max-width: 420px;
+  background: #0f172a;
+  border: 2px solid #00f2fe;
+  box-shadow: 0 0 30px rgba(0, 242, 254, 0.3);
+  border-radius: 20px;
+  padding: 24px;
+  position: relative;
+  transform: translateY(30px) scale(0.95);
+  transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.modal-overlay.active .arcade-modal-style {
+  transform: translateY(0) scale(1);
+}
+
+.modal-heading {
+  font-family: 'Sedgwick Ave', cursive;
+  font-size: 1.6rem;
+  background: linear-gradient(135deg, #00f2fe, #ff007f);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 2px;
+}
+
+.modal-sub {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-bottom: 18px;
+}
+
+.modal-field {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 14px;
+}
+
+.modal-field label {
+  font-size: 11px;
+  font-weight: 600;
+  color: #cbd5e1;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.modal-field input[type="text"] {
+  width: 100%;
+  height: 42px;
+  padding: 0 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  font-size: 14px;
+  outline: none;
+}
+
+.modal-select {
+  height: 42px !important;
+  font-size: 14px !important;
+}
+
+.btn-submit-spot {
+  width: 100%;
+  height: 46px;
+  border: none;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #00f2fe, #ff007f);
+  color: #fff;
+  font-family: 'Sedgwick Ave', cursive;
+  font-size: 16px;
+  cursor: pointer;
+  margin-top: 8px;
+  box-shadow: 0 4px 15px rgba(0, 242, 254, 0.4);
+  transition: transform 0.1s;
+}
+
+.btn-submit-spot:active {
+  transform: scale(0.98);
+}
+
 /* Bottom Sheet (Detail Panel) */
 .bottom-sheet {
   position: absolute;
@@ -306,11 +488,8 @@ body, html {
   pointer-events: auto;
 }
 
-.bottom-sheet.active { 
-  bottom: 0; 
-}
+.bottom-sheet.active { bottom: 0; }
 
-/* Floating X-Schließen-Button */
 .btn-close-sheet {
   position: absolute;
   top: 14px;
@@ -325,12 +504,6 @@ body, html {
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background 0.2s, color 0.2s;
-}
-
-.btn-close-sheet:active {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
 }
 
 .sheet-content h2 {
