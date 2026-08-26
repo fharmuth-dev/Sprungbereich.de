@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sprungbereich.de</title>
 
-  <!-- Google Font: Story Script -->
+  <!-- Google Fonts: Story Script & Sedgwick Ave -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Story+Script&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Sedgwick+Ave&family=Story+Script&display=swap" rel="stylesheet">
 
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -18,7 +18,7 @@
 </head>
 <body>
 
-  <!-- Loading Screen mit Text-Animation -->
+  <!-- Loading Screen -->
   <div id="loadingScreen" class="loading-screen">
     <div class="splash-content">
       <h1 class="brand-title animated-title">Sprungbereich.de</h1>
@@ -36,7 +36,6 @@
 
   <!-- UI Panel -->
   <div class="search-panel">
-    
     <!-- Suche & Radius -->
     <div class="search-row">
       <div class="field-group flex-grow">
@@ -84,7 +83,7 @@
       </div>
     </div>
 
-    <!-- Legende für Farben -->
+    <!-- Farb-Legende -->
     <div class="legend-row">
       <div class="legend-item">
         <span class="dot dot-freibad"></span>
@@ -110,7 +109,67 @@
     </div>
   </div>
 
-  <!-- Bottom Sheet (Detail-Panel) mit Schließen-Button -->
+  <!-- ARCADE / SKATE 3 COMMUNITY BANNER (Unten zentriert) -->
+  <div class="arcade-cta-card" id="openAddModalBtn">
+    <div class="arcade-content">
+      <div class="arcade-title" id="dynamicGraffitiTitle">
+        <!-- Dynamische Rainbow-Buchstaben werden via JS hier gerendert -->
+      </div>
+      <p class="arcade-sub">Trage deinen Spot ein & mach die Map voll!</p>
+    </div>
+    <div class="arcade-btn-wrapper">
+      <span class="arcade-btn-glow">+ JETZT DROP PEN!</span>
+    </div>
+  </div>
+
+  <!-- ADD SPOT MODAL (Popup Formular) -->
+  <div id="addSpotModal" class="modal-overlay">
+    <div class="modal-card arcade-modal-style">
+      <button id="closeAddModalBtn" class="btn-close-sheet" title="Schließen">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+
+      <h2 class="modal-heading">NEUEN SPOT DROPPEN 🛹</h2>
+      <p class="modal-sub">Trage die Infos deines Sprungspots ein:</p>
+
+      <form id="addSpotForm">
+        <div class="modal-field">
+          <label>Name des Bades / Spots</label>
+          <input type="text" id="newSpotName" placeholder="z. B. Stadionbad Ulm" required>
+        </div>
+
+        <div class="modal-field">
+          <label>Ort / Stadt</label>
+          <input type="text" id="newSpotCity" placeholder="z. B. Ulm" required>
+        </div>
+
+        <div class="modal-field">
+          <label>Kategorie</label>
+          <select id="newSpotType" class="glass-select modal-select" required>
+            <option value="Freibad">🟡 Freibad</option>
+            <option value="Hallenbad">🟣 Hallenbad</option>
+            <option value="See">🔵 See / Klippe</option>
+          </select>
+        </div>
+
+        <div class="modal-field">
+          <label>Höchster Sprungturm / Höhe (in Metern)</label>
+          <select id="newSpotHeight" class="glass-select modal-select" required>
+            <option value="1">1 Meter Brett</option>
+            <option value="3">3 Meter Turm</option>
+            <option value="5" selected>5 Meter Turm</option>
+            <option value="7.5">7.5 Meter Turm</option>
+            <option value="10">10 Meter Profi-Turm</option>
+            <option value="15">15+ Meter Klippe / High-Dive</option>
+          </select>
+        </div>
+
+        <button type="submit" class="btn-submit-spot">SPOT HINZUFÜGEN 🔥</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Bottom Sheet (Detail-Panel) -->
   <div id="bottomSheet" class="bottom-sheet">
     <button id="closeSheetBtn" class="btn-close-sheet" title="Schließen">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
