@@ -1,8 +1,9 @@
 let map;
 let markersGroup;
+let countryBorderLayer = null;
 let allSpots = [];
 
-// Supabase Konfiguration (Optional – falls leer, greift nahtlos der Fallback)
+// Supabase Konfiguration
 const SUPABASE_URL = "DEINE_SUPABASE_URL";
 const SUPABASE_KEY = "DEIN_SUPABASE_ANON_KEY";
 let supabaseClient = null;
@@ -11,7 +12,6 @@ if (typeof supabase !== "undefined" && SUPABASE_URL !== "DEINE_SUPABASE_URL") {
   supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 }
 
-// Robuste, saubere Stammdaten-Basis für den Sofortstart
 const localDatabase = [
   { id: 1, name: "Olympia-Schwimmhalle München", country: "de", city: "München", zip: "80809", type: "Hallenbad", height: 10, verified: true, lat: 48.1732, lng: 11.5536 },
   { id: 2, name: "Stadionbad Nürnberg", country: "de", city: "Nürnberg", zip: "90471", type: "Freibad", height: 10, verified: true, lat: 49.4322, lng: 11.1194 },
@@ -24,17 +24,16 @@ const localDatabase = [
   { id: 9, name: "Hallenbad Oerlikon Zürich", country: "ch", city: "Zürich", zip: "8050", type: "Hallenbad", height: 10, verified: true, lat: 47.4105, lng: 8.5471 }
 ];
 
-const countryCoordinates = {
-  de: { lat: 51.1657, lng: 10.4515, zoom: 6 },
-  at: { lat: 47.5162, lng: 14.5501, zoom: 7 },
-  ch: { lat: 46.8182, lng: 8.2275, zoom: 8 },
-  fr: { lat: 46.2276, lng: 2.2137, zoom: 6 },
-  it: { lat: 41.8719, lng: 12.5674, zoom: 6 },
-  es: { lat: 40.4637, lng: -3.7492, zoom: 6 }
+const countrySettings = {
+  de: { lat: 51.1657, lng: 10.4515, zoom: 6, bboxName: "Germany" },
+  at: { lat: 47.5162, lng: 14.5501, zoom: 7, bboxName: "Austria" },
+  ch: { lat: 46.8182, lng: 8.2275, zoom: 8, bboxName: "Switzerland" },
+  fr: { lat: 46.2276, lng: 2.2137, zoom: 6, bboxName: "France" },
+  it: { lat: 41.8719, lng: 12.5674, zoom: 6, bboxName: "Italy" },
+  es: { lat: 40.4637, lng: -3.7492, zoom: 6, bboxName: "Spain" }
 };
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Leaflet Map Initialisierung mit Dark Matter Carto-Tile
   map = L.map("map", { zoomControl: false }).setView([51.1657, 10.4515], 6);
 
   L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
@@ -45,24 +44,18 @@ document.addEventListener("DOMContentLoaded", () => {
   markersGroup = L.layerGroup().addTo(map);
   L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-  // Datenbank laden
   loadSpotsData();
 
-  // Event-Listener für Live-Filterwechsel
   document.getElementById("heightFilter").addEventListener("change", applyAllFilters);
   document.getElementById("typeFilter").addEventListener("change", applyAllFilters);
   document.getElementById("verifiedOnlyToggle").addEventListener("change", applyAllFilters);
   
   const countrySelect = document.getElementById("countryFilter");
   countrySelect.addEventListener("change", () => {
-    const code = countrySelect.value;
-    if (countryCoordinates[code]) {
-      map.setView([countryCoordinates[code].lat, countryCoordinates[code].lng], countryCoordinates[code].zoom);
-    }
+    updateCountrySelection(countrySelect.value);
     applyAllFilters();
   });
 
-  // Such-Aktion verknüpfen
   document.getElementById("searchBtn").addEventListener("click", executeSearch);
   document.getElementById("searchInput").addEventListener("keydown", (e) => {
     if (e.key === "Enter") executeSearch();
@@ -83,16 +76,46 @@ async function loadSpotsData() {
   applyAllFilters();
 }
 
+// Funktion für den Sektor-Wechsel inklusive GeoJSON-Länderumriss
+async function updateCountrySelection(countryCode) {
+  const conf = countrySettings[countryCode];
+  if (!conf) return;
+
+  map.setView([conf.lat, conf.lng], conf.zoom);
+
+  // Vorherigen Umriss entfernen, falls vorhanden
+  if (countryBorderLayer) {
+    map.removeLayer(countryBorderLayer);
+    countryBorderLayer = null;
+  }
+
+  // Live die offiziellen GeoJSON-Grenzen von Nominatim laden, um den Sektor einzukreisen
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&country=${conf.bboxName}&limit=1`);
+    const data = await res.json();
+    if (data && data[0] && data[0].geojson) {
+      countryBorderLayer = L.geoJSON(data[0].geojson, {
+        style: {
+          color: "#00f2fe",
+          weight: 2,
+          opacity: 0.8,
+          fillColor: "#00f2fe",
+          fillOpacity: 0.04
+        }
+      }).addTo(map);
+    }
+  } catch (e) {
+    console.log("Konnte Sektor-Grenzen nicht laden, nutze Standard-Ansicht.");
+  }
+}
+
 window.initMapForCountry = function(countryCode) {
   const select = document.getElementById("countryFilter");
   select.value = countryCode;
-  if (countryCoordinates[countryCode]) {
-    map.setView([countryCoordinates[countryCode].lat, countryCoordinates[countryCode].lng], countryCoordinates[countryCode].zoom);
-  }
+  updateCountrySelection(countryCode);
   applyAllFilters();
 };
 
-// Zentrale synchrone Filtereinheit
 function applyAllFilters() {
   const country = document.getElementById("countryFilter").value;
   const minHeight = parseFloat(document.getElementById("heightFilter").value) || 0;
@@ -116,7 +139,6 @@ function applyAllFilters() {
   });
 
   filtered.forEach(spot => {
-    // 2026er Marker Styling (Glowing Cyan oder Gold bei Verifizierung)
     const marker = L.circleMarker([spot.lat, spot.lng], {
       radius: 9,
       fillColor: spot.verified ? "#00f2fe" : "#ffb703",
@@ -145,14 +167,14 @@ function executeSearch() {
     if (filtered.length > 0) {
       map.setView([filtered[0].lat, filtered[0].lng], 13);
     } else {
-      // Nominatim Geocoding Fallback für weltweite PLZ/Städte-Suche
+      // PLZ oder Stadt-Suche (z.B. Ulm) via Nominatim
       fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=${country}`)
         .then(res => res.json())
         .then(results => {
           if (results && results.length > 0) {
-            map.setView([parseFloat(results[0].lat), parseFloat(results[0].lon)], 12);
+            map.setView([parseFloat(results[0].lat), parseFloat(results[0].lon)], 13);
           } else {
-            alert("Kein Ort oder Spot gefunden.");
+            alert("Kein Spot in diesem Gebiet gefunden. Trage den Spot gerne über den '+' Button ein!");
           }
         })
         .catch(() => alert("Fehler bei der Verbindung."));
