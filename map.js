@@ -2,8 +2,8 @@
 const SUPABASE_URL = "https://bmngqythtalsddqtfuib.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_TPwfBJvsktOEDPZmQAcG0w_AnYnaQeW";
 
-// Supabase Client initialisieren
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// Supabase Client initialisieren (Variable umbenannt um Namenskonflikte zu vermeiden)
+const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let map;
 let markersGroup;
@@ -74,7 +74,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // Spots aus Supabase laden & auf Map-Format mappen
 async function loadSpotsFromSupabase() {
   try {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseClient
       .from('spots')
       .select('*');
 
@@ -291,7 +291,7 @@ function handleAddSpotSubmit(e) {
       }
 
       // In Supabase einfügen (Standard-Status ist 'pending')
-      const { data, error } = await supabase
+      const { data, error } = await supabaseClient
         .from('spots')
         .insert([
           {
