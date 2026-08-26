@@ -1,7 +1,29 @@
 let map;
 let markersGroup;
+let allSpots = [];
 
-// Standard-Zentren
+// Supabase Konfiguration (Optional – falls leer, greift nahtlos der Fallback)
+const SUPABASE_URL = "DEINE_SUPABASE_URL";
+const SUPABASE_KEY = "DEIN_SUPABASE_ANON_KEY";
+let supabaseClient = null;
+
+if (typeof supabase !== "undefined" && SUPABASE_URL !== "DEINE_SUPABASE_URL") {
+  supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+}
+
+// Robuste, saubere Stammdaten-Basis für den Sofortstart
+const localDatabase = [
+  { id: 1, name: "Olympia-Schwimmhalle München", country: "de", city: "München", zip: "80809", type: "Hallenbad", height: 10, verified: true, lat: 48.1732, lng: 11.5536 },
+  { id: 2, name: "Stadionbad Nürnberg", country: "de", city: "Nürnberg", zip: "90471", type: "Freibad", height: 10, verified: true, lat: 49.4322, lng: 11.1194 },
+  { id: 3, name: "Inselbad Untertürkheim Stuttgart", country: "de", city: "Stuttgart", zip: "70327", type: "Freibad", height: 10, verified: true, lat: 48.7780, lng: 9.2520 },
+  { id: 4, name: "Strandbad Wannsee Berlin", country: "de", city: "Berlin", zip: "14129", type: "See", height: 5, verified: false, lat: 52.4384, lng: 13.1785 },
+  { id: 5, name: "Freibad Prinzenstraße Berlin", country: "de", city: "Berlin", zip: "10969", type: "Freibad", height: 10, verified: true, lat: 52.4965, lng: 13.4116 },
+  { id: 6, name: "Stadionbad Köln", country: "de", city: "Köln", zip: "50933", type: "Freibad", height: 10, verified: true, lat: 50.9333, lng: 6.8744 },
+  { id: 7, name: "Stadthallenbad Wien", country: "at", city: "Wien", zip: "1150", type: "Hallenbad", height: 10, verified: true, lat: 48.2023, lng: 16.3336 },
+  { id: 8, name: "Freibad Prater Wien", country: "at", city: "Wien", zip: "1020", type: "Freibad", height: 5, verified: true, lat: 48.2145, lng: 16.4022 },
+  { id: 9, name: "Hallenbad Oerlikon Zürich", country: "ch", city: "Zürich", zip: "8050", type: "Hallenbad", height: 10, verified: true, lat: 47.4105, lng: 8.5471 }
+];
+
 const countryCoordinates = {
   de: { lat: 51.1657, lng: 10.4515, zoom: 6 },
   at: { lat: 47.5162, lng: 14.5501, zoom: 7 },
@@ -11,142 +33,143 @@ const countryCoordinates = {
   es: { lat: 40.4637, lng: -3.7492, zoom: 6 }
 };
 
-// Fallback-Spots: Garantieren, dass die Karte NIEMALS leer ist!
-const fallbackSpots = [
-  { name: "Olympia-Schwimmhalle München", type: "Hallenbad / Sprungturm", height: 10, lat: 48.1732, lng: 11.5536 },
-  { name: "Freibad Stadionbad Köln", type: "Freibad", height: 10, lat: 50.9333, lng: 6.8744 },
-  { name: "Stadionbad Nürnberg", type: "Freibad", height: 10, lat: 49.4322, lng: 11.1194 },
-  { name: "Freibad Untertürkheim Stuttgart", type: "Freibad", height: 10, lat: 48.7778, lng: 9.2514 },
-  { name: "Strandbad Wannsee Berlin", type: "Freibad / See", height: 5, lat: 52.4384, lng: 13.1785 },
-  { name: "Freibad Prinzenstraße Berlin", type: "Freibad", height: 10, lat: 52.4965, lng: 13.4116 },
-  { name: "Inselbad Untertürkheim", type: "Freibad", height: 10, lat: 48.7780, lng: 9.2520 }
-];
-
 document.addEventListener("DOMContentLoaded", () => {
-  // Kartenerstellung
+  // Leaflet Map Initialisierung mit Dark Matter Carto-Tile
   map = L.map("map", { zoomControl: false }).setView([51.1657, 10.4515], 6);
 
   L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
     attribution: '&copy; OpenStreetMap &copy; CARTO',
-    subdomains: 'abcd',
     maxZoom: 19
   }).addTo(map);
 
   markersGroup = L.layerGroup().addTo(map);
   L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-  // Bei jeder Kartenbewegung automatisch Daten laden
-  map.on("moveend", () => {
-    fetchSpotsForBounds();
+  // Datenbank laden
+  loadSpotsData();
+
+  // Event-Listener für Live-Filterwechsel
+  document.getElementById("heightFilter").addEventListener("change", applyAllFilters);
+  document.getElementById("typeFilter").addEventListener("change", applyAllFilters);
+  document.getElementById("verifiedOnlyToggle").addEventListener("change", applyAllFilters);
+  
+  const countrySelect = document.getElementById("countryFilter");
+  countrySelect.addEventListener("change", () => {
+    const code = countrySelect.value;
+    if (countryCoordinates[code]) {
+      map.setView([countryCoordinates[code].lat, countryCoordinates[code].lng], countryCoordinates[code].zoom);
+    }
+    applyAllFilters();
+  });
+
+  // Such-Aktion verknüpfen
+  document.getElementById("searchBtn").addEventListener("click", executeSearch);
+  document.getElementById("searchInput").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") executeSearch();
   });
 });
 
-window.initMapForCountry = function(countryCode) {
-  const config = countryCoordinates[countryCode] || countryCoordinates["de"];
-  map.setView([config.lat, config.lng], config.zoom);
-  
-  setTimeout(() => {
-    fetchSpotsForBounds();
-  }, 400);
-};
-
-// Spots von Overpass laden + Fallback einbauen
-function fetchSpotsForBounds() {
-  if (!map) return;
-
-  const bounds = map.getBounds();
-  const bbox = `${bounds.getSouth()},${bounds.getWest()},${bounds.getNorth()},${bounds.getEast()}`;
-
-  // Vereinfachte & schnellere Overpass-Abfrage
-  const query = `[out:json][timeout:10];node["leisure"="swimming_pool"](${bbox});out body 50;`;
-  const url = "https://overpass-api.de/api/interpreter?data=" + encodeURIComponent(query);
-
-  fetch(url)
-    .then(res => res.json())
-    .then(data => {
-      markersGroup.clearLayers();
-
-      // Falls Overpass Daten liefert, diese anzeigen
-      if (data.elements && data.elements.length > 0) {
-        data.elements.forEach(item => {
-          const name = item.tags?.name || "Freibad / Sprungbereich";
-          addMarkerToMap(item.lat, item.lon, name, "Freibad / Hallenbad");
-        });
-      }
-      
-      // Zusätzlich IMMER die verifizierten Datenbank-Spots einblenden
-      renderFallbackSpots();
-    })
-    .catch(err => {
-      console.warn("Overpass API nicht erreichbar oder blockiert. Nutze Fallback-Daten.", err);
-      markersGroup.clearLayers();
-      renderFallbackSpots();
-    });
-}
-
-function renderFallbackSpots() {
-  const bounds = map.getBounds();
-  fallbackSpots.forEach(spot => {
-    // Prüfen, ob Spot im aktuellen Kartenausschnitt liegt (oder beim Zoom auf den Ort passt)
-    if (bounds.contains([spot.lat, spot.lng]) || map.getZoom() <= 7) {
-      addMarkerToMap(spot.lat, spot.lng, spot.name, spot.type);
+async function loadSpotsData() {
+  if (supabaseClient) {
+    try {
+      const { data, error } = await supabaseClient.from("spots").select("*");
+      allSpots = (!error && data && data.length > 0) ? data : localDatabase;
+    } catch {
+      allSpots = localDatabase;
     }
-  });
+  } else {
+    allSpots = localDatabase;
+  }
+  applyAllFilters();
 }
 
-function addMarkerToMap(lat, lng, name, type) {
-  const marker = L.circleMarker([lat, lng], {
-    radius: 8,
-    fillColor: "#00f2fe",
-    color: "#ffffff",
-    weight: 2,
-    opacity: 1,
-    fillOpacity: 0.9
-  });
-
-  marker.on("click", () => {
-    showBottomSheet(name, type, lat, lng);
-  });
-
-  markersGroup.addLayer(marker);
-}
-
-// Suche verknüpfen (Nominatim Geocoding)
-window.searchLocationWithFilters = function(query, country, height, type) {
-  if (!query) return;
-
-  const searchUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=${country}`;
-
-  fetch(searchUrl)
-    .then(res => res.json())
-    .then(results => {
-      if (results && results.length > 0) {
-        const first = results[0];
-        const lat = parseFloat(first.lat);
-        const lon = parseFloat(first.lon);
-
-        // Auf Standort zoomen
-        map.setView([lat, lon], 12);
-      } else {
-        alert("Ort oder PLZ nicht gefunden. Bitte Eingabe überprüfen.");
-      }
-    })
-    .catch(err => {
-      alert("Fehler bei der Suche. Bitte Internetverbindung prüfen.");
-      console.error(err);
-    });
+window.initMapForCountry = function(countryCode) {
+  const select = document.getElementById("countryFilter");
+  select.value = countryCode;
+  if (countryCoordinates[countryCode]) {
+    map.setView([countryCoordinates[countryCode].lat, countryCoordinates[countryCode].lng], countryCoordinates[countryCode].zoom);
+  }
+  applyAllFilters();
 };
 
-function showBottomSheet(name, type, lat, lng) {
-  const sheet = document.getElementById("bottomSheet");
-  const title = document.getElementById("poolTitle");
-  const poolType = document.getElementById("poolType");
-  const navBtn = document.getElementById("navBtn");
+// Zentrale synchrone Filtereinheit
+function applyAllFilters() {
+  const country = document.getElementById("countryFilter").value;
+  const minHeight = parseFloat(document.getElementById("heightFilter").value) || 0;
+  const type = document.getElementById("typeFilter").value;
+  const verifiedOnly = document.getElementById("verifiedOnlyToggle").checked;
+  const query = document.getElementById("searchInput").value.toLowerCase().trim();
 
-  if (sheet && title) {
-    title.textContent = name;
-    poolType.textContent = type;
-    navBtn.href = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
-    sheet.classList.add("active");
+  markersGroup.clearLayers();
+
+  const filtered = allSpots.filter(spot => {
+    const matchCountry = !country || spot.country === country;
+    const matchHeight = (spot.height || 0) >= minHeight;
+    const matchType = type === "all" || spot.type === type;
+    const matchVerified = !verifiedOnly || spot.verified === true;
+    const matchQuery = !query || 
+                       spot.name.toLowerCase().includes(query) || 
+                       spot.city.toLowerCase().includes(query) || 
+                       (spot.zip && spot.zip.includes(query));
+
+    return matchCountry && matchHeight && matchType && matchVerified && matchQuery;
+  });
+
+  filtered.forEach(spot => {
+    // 2026er Marker Styling (Glowing Cyan oder Gold bei Verifizierung)
+    const marker = L.circleMarker([spot.lat, spot.lng], {
+      radius: 9,
+      fillColor: spot.verified ? "#00f2fe" : "#ffb703",
+      color: "#ffffff",
+      weight: 2.5,
+      opacity: 1,
+      fillOpacity: 0.95
+    });
+
+    marker.on("click", () => {
+      showBottomSheet(spot.name, `${spot.type} • ${spot.height}m Turm`, spot.verified, spot.lat, spot.lng);
+    });
+
+    markersGroup.addLayer(marker);
+  });
+
+  return filtered;
+}
+
+function executeSearch() {
+  const query = document.getElementById("searchInput").value.trim();
+  const country = document.getElementById("countryFilter").value;
+  const filtered = applyAllFilters();
+
+  if (query !== "") {
+    if (filtered.length > 0) {
+      map.setView([filtered[0].lat, filtered[0].lng], 13);
+    } else {
+      // Nominatim Geocoding Fallback für weltweite PLZ/Städte-Suche
+      fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=${country}`)
+        .then(res => res.json())
+        .then(results => {
+          if (results && results.length > 0) {
+            map.setView([parseFloat(results[0].lat), parseFloat(results[0].lon)], 12);
+          } else {
+            alert("Kein Ort oder Spot gefunden.");
+          }
+        })
+        .catch(() => alert("Fehler bei der Verbindung."));
+    }
   }
+}
+
+function showBottomSheet(name, typeInfo, isVerified, lat, lng) {
+  const sheet = document.getElementById("bottomSheet");
+  document.getElementById("poolTitle").textContent = name;
+  document.getElementById("poolType").textContent = typeInfo;
+  
+  const badge = document.getElementById("verifiedBadge");
+  badge.textContent = isVerified ? "Verifiziert" : "Unbestätigt";
+  badge.style.background = isVerified ? "rgba(0,242,254,0.15)" : "rgba(255,255,255,0.05)";
+  badge.style.color = isVerified ? "#00f2fe" : "#94a3b8";
+
+  document.getElementById("navBtn").href = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`;
+  sheet.classList.add("active");
 }
