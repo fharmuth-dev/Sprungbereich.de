@@ -58,23 +58,23 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // UX FIX 1: Schließen-Button (X) Event
-  document.getElementById("closeSheetBtn").addEventListener("click", closeBottomSheet);
+  document.getElementById("closeSheetBtn").addEventListener("click", () => closeBottomSheet(true));
 
   // UX FIX 2: Klick auf die Karte schließt das Detail-Panel
   map.on("click", () => {
-    closeBottomSheet();
+    closeBottomSheet(true);
   });
 
   // UX FIX 3: Handy-Zurück-Taste abfangen
   window.addEventListener("popstate", () => {
     const sheet = document.getElementById("bottomSheet");
     if (sheet.classList.contains("active")) {
-      closeBottomSheet(false); // Schließen ohne echten Verlauf zu ändern
+      closeBottomSheet(false);
     }
   });
 
-  // Initial Filter anwenden
-  applyAllFilters();
+  // Initial direkt nach der Eingabe "10117" (Berlin) suchen, damit der Radius & Pin da sind
+  executeSearch();
 });
 
 function drawGermanyOutline() {
@@ -89,7 +89,8 @@ function drawGermanyOutline() {
             opacity: 0.6,
             fillColor: "#00f2fe",
             fillOpacity: 0.03
-          }
+          },
+          interactive: false // Macht die Deutschland-Linie für Klicks "unsichtbar"
         }).addTo(map);
       }
     });
@@ -117,7 +118,8 @@ function updateRadiusAndPin(lat, lng) {
     weight: 2,
     fillColor: "#10b981",
     fillOpacity: 0.08,
-    dashArray: "5, 5"
+    dashArray: "5, 5",
+    interactive: false // Macht den grünen Radius-Kreis für Klicks durchlässig
   }).addTo(map);
 
   const pinIcon = L.divIcon({
@@ -131,7 +133,7 @@ function updateRadiusAndPin(lat, lng) {
     iconAnchor: [12, 12]
   });
 
-  centerPinMarker = L.marker([lat, lng], { icon: pinIcon }).addTo(map);
+  centerPinMarker = L.marker([lat, lng], { icon: pinIcon, interactive: false }).addTo(map);
   map.fitBounds(radiusCircleLayer.getBounds(), { padding: [30, 30] });
 }
 
@@ -166,14 +168,23 @@ function applyAllFilters() {
 
   filtered.forEach(spot => {
     const marker = L.circleMarker([spot.lat, spot.lng], {
-      radius: 8,
+      radius: 10,
       fillColor: spot.verified ? "#00f2fe" : "#ffb703",
       color: "#ffffff",
       weight: 2,
-      fillOpacity: 0.9
+      fillOpacity: 0.9,
+      interactive: true
     });
 
-    marker.on("click", () => {
+    // Macht das Icon anklickbar & ändert den Mauszeiger
+    marker.on("add", () => {
+      if (marker._path) {
+        marker._path.style.cursor = "pointer";
+      }
+    });
+
+    marker.on("click", (e) => {
+      L.DomEvent.stopPropagation(e); // Verhindert, dass der Klick durch die Map gefangen wird
       openBottomSheet(spot);
     });
 
@@ -201,8 +212,9 @@ function openBottomSheet(spot) {
 
   sheet.classList.add("active");
 
-  // Eintrag in Verlaufs-Historie pushen, um Handy-Zurück abfangen zu können
-  history.pushState({ sheetOpen: true }, "");
+  if (!history.state || !history.state.sheetOpen) {
+    history.pushState({ sheetOpen: true }, "");
+  }
 }
 
 function closeBottomSheet(triggerPopstate = true) {
