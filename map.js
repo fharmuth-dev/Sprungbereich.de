@@ -4,19 +4,9 @@ let countryBorderLayer = null;
 let radiusCircleLayer = null;
 let centerPinMarker = null;
 let currentSearchCenter = null;
-let allSpots = [];
 
-const localDatabase = [
-  { id: 1, name: "Olympia-Schwimmhalle München", city: "München", zip: "80809", type: "Hallenbad", height: 10, verified: true, lat: 48.1732, lng: 11.5536 },
-  { id: 2, name: "Stadionbad Nürnberg", city: "Nürnberg", zip: "90471", type: "Freibad", height: 10, verified: true, lat: 49.4322, lng: 11.1194 },
-  { id: 3, name: "Inselbad Untertürkheim", city: "Stuttgart", zip: "70327", type: "Freibad", height: 10, verified: true, lat: 48.7780, lng: 9.2520 },
-  { id: 4, name: "SSV Ulm 1846 Freibad", city: "Ulm", zip: "89073", type: "Freibad", height: 5, verified: true, lat: 48.4011, lng: 9.9876 },
-  { id: 5, name: "Freibad Neu-Ulm", city: "Neu-Ulm", zip: "89231", type: "Freibad", height: 10, verified: true, lat: 48.3870, lng: 10.0050 },
-  { id: 6, name: "Waldbad Günzburg", city: "Günzburg", zip: "89312", type: "Freibad", height: 5, verified: true, lat: 48.4520, lng: 10.2740 },
-  { id: 7, name: "Strandbad Wannsee Berlin", city: "Berlin", zip: "14129", type: "See", height: 5, verified: false, lat: 52.4384, lng: 13.1785 },
-  { id: 8, name: "Freibad Prinzenstraße", city: "Berlin", zip: "10969", type: "Freibad", height: 10, verified: true, lat: 52.4965, lng: 13.4116 },
-  { id: 9, name: "Kombibad Seestraße", city: "Berlin", zip: "13347", type: "Hallenbad", height: 10, verified: true, lat: 52.5510, lng: 13.3530 }
-];
+// Die Liste startet JETZT KOMPLETT LEER
+let allSpots = [];
 
 document.addEventListener("DOMContentLoaded", () => {
   // Loading Screen ausblenden
@@ -34,8 +24,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   markersGroup = L.layerGroup().addTo(map);
   L.control.zoom({ position: 'bottomright' }).addTo(map);
-
-  allSpots = localDatabase;
 
   // Deutschland-Grenze rendern
   drawGermanyOutline();
@@ -73,7 +61,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 
-  // Initial direkt nach der Eingabe "10117" (Berlin) suchen, damit der Radius & Pin da sind
+  // Initial Suche
   executeSearch();
 });
 
@@ -90,7 +78,7 @@ function drawGermanyOutline() {
             fillColor: "#00f2fe",
             fillOpacity: 0.03
           },
-          interactive: false // Macht die Deutschland-Linie für Klicks "unsichtbar"
+          interactive: false
         }).addTo(map);
       }
     });
@@ -119,7 +107,7 @@ function updateRadiusAndPin(lat, lng) {
     fillColor: "#10b981",
     fillOpacity: 0.08,
     dashArray: "5, 5",
-    interactive: false // Macht den grünen Radius-Kreis für Klicks durchlässig
+    interactive: false
   }).addTo(map);
 
   const pinIcon = L.divIcon({
@@ -135,6 +123,19 @@ function updateRadiusAndPin(lat, lng) {
 
   centerPinMarker = L.marker([lat, lng], { icon: pinIcon, interactive: false }).addTo(map);
   map.fitBounds(radiusCircleLayer.getBounds(), { padding: [30, 30] });
+}
+
+// Hilfsfunktion: Gibt jedem Spot seine exakte Farbe
+function getSpotColor(type) {
+  switch (type) {
+    case "Freibad":
+      return "#ffd166"; // Gelb
+    case "Hallenbad":
+      return "#a855f7"; // Lila
+    case "See":
+    default:
+      return "#00f2fe"; // Blau
+  }
 }
 
 function applyAllFilters() {
@@ -167,16 +168,17 @@ function applyAllFilters() {
   });
 
   filtered.forEach(spot => {
+    const spotColor = getSpotColor(spot.type);
+
     const marker = L.circleMarker([spot.lat, spot.lng], {
-      radius: 10,
-      fillColor: spot.verified ? "#00f2fe" : "#ffb703",
+      radius: 9,
+      fillColor: spotColor,
       color: "#ffffff",
       weight: 2,
-      fillOpacity: 0.9,
+      fillOpacity: 0.95,
       interactive: true
     });
 
-    // Macht das Icon anklickbar & ändert den Mauszeiger
     marker.on("add", () => {
       if (marker._path) {
         marker._path.style.cursor = "pointer";
@@ -184,7 +186,7 @@ function applyAllFilters() {
     });
 
     marker.on("click", (e) => {
-      L.DomEvent.stopPropagation(e); // Verhindert, dass der Klick durch die Map gefangen wird
+      L.DomEvent.stopPropagation(e);
       openBottomSheet(spot);
     });
 
