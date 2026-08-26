@@ -1,6 +1,8 @@
 let map;
 let markersGroup;
+let countryBorderLayer = null;
 let radiusCircleLayer = null;
+let centerPinMarker = null;
 let currentSearchCenter = null;
 let allSpots = [];
 
@@ -10,16 +12,20 @@ const localDatabase = [
   { id: 3, name: "Inselbad Untertürkheim", city: "Stuttgart", zip: "70327", type: "Freibad", height: 10, verified: true, lat: 48.7780, lng: 9.2520 },
   { id: 4, name: "SSV Ulm 1846 Freibad", city: "Ulm", zip: "89073", type: "Freibad", height: 5, verified: true, lat: 48.4011, lng: 9.9876 },
   { id: 5, name: "Freibad Neu-Ulm", city: "Neu-Ulm", zip: "89231", type: "Freibad", height: 10, verified: true, lat: 48.3870, lng: 10.0050 },
-  { id: 6, name: "Waldbad Günzburg", city: "Günzburg", zip: "89312", type: "Freibad", height: 5, verified: true, lat: 48.4520, lng: 10.2740 }
+  { id: 6, name: "Waldbad Günzburg", city: "Günzburg", zip: "89312", type: "Freibad", height: 5, verified: true, lat: 48.4520, lng: 10.2740 },
+  { id: 7, name: "Strandbad Wannsee Berlin", city: "Berlin", zip: "14129", type: "See", height: 5, verified: false, lat: 52.4384, lng: 13.1785 },
+  { id: 8, name: "Freibad Prinzenstraße", city: "Berlin", zip: "10969", type: "Freibad", height: 10, verified: true, lat: 52.4965, lng: 13.4116 },
+  { id: 9, name: "Kombibad Seestraße", city: "Berlin", zip: "13347", type: "Hallenbad", height: 10, verified: true, lat: 52.5510, lng: 13.3530 }
 ];
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Splash Screen nach 1.2s ausblenden
+  // Loading Screen nach Animation sanft ausblenden (~3.5 Sek Lesezeit)
   setTimeout(() => {
     const loader = document.getElementById("loadingScreen");
     if (loader) loader.classList.add("fade-out");
-  }, 1200);
+  }, 3500);
 
+  // Karte beim Start auf ganz Deutschland fokussieren
   map = L.map("map", { zoomControl: false }).setView([51.1657, 10.4515], 6);
 
   L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
@@ -30,15 +36,18 @@ document.addEventListener("DOMContentLoaded", () => {
   L.control.zoom({ position: 'bottomright' }).addTo(map);
 
   allSpots = localDatabase;
-  applyAllFilters();
 
+  // Deutschland-Grenze dauerhaft rendern
+  drawGermanyOutline();
+
+  // Event Listener
   document.getElementById("heightFilter").addEventListener("change", applyAllFilters);
   document.getElementById("typeFilter").addEventListener("change", applyAllFilters);
   document.getElementById("verifiedOnlyToggle").addEventListener("change", applyAllFilters);
   
   document.getElementById("radiusFilter").addEventListener("change", () => {
     if (currentSearchCenter) {
-      updateRadiusCircle(currentSearchCenter.lat, currentSearchCenter.lng);
+      updateRadiusAndPin(currentSearchCenter.lat, currentSearchCenter.lng);
     }
     applyAllFilters();
   });
@@ -47,7 +56,29 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("searchInput").addEventListener("keydown", (e) => {
     if (e.key === "Enter") executeSearch();
   });
+
+  // Initial alle Spots anzeigen
+  applyAllFilters();
 });
+
+// Zeichnet die permanente Deutschland-Grenze
+function drawGermanyOutline() {
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&country=Germany&limit=1`)
+    .then(res => res.json())
+    .then(data => {
+      if (data && data[0] && data[0].geojson) {
+        countryBorderLayer = L.geoJSON(data[0].geojson, {
+          style: {
+            color: "#00f2fe",
+            weight: 2,
+            opacity: 0.6,
+            fillColor: "#00f2fe",
+            fillOpacity: 0.03
+          }
+        }).addTo(map);
+      }
+    });
+}
 
 function getDistanceInKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
@@ -59,11 +90,17 @@ function getDistanceInKm(lat1, lon1, lat2, lon2) {
   return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)));
 }
 
-function updateRadiusCircle(lat, lng) {
+// Zeichnet den Radius-Kreis UND setzt die Pin-Nadel im Mittelpunkt
+function updateRadiusAndPin(lat, lng) {
   const radiusKm = parseFloat(document.getElementById("radiusFilter").value) || 25;
   
+  // Alten Kreis entfernen
   if (radiusCircleLayer) map.removeLayer(radiusCircleLayer);
+  
+  // Alte Pin-Nadel entfernen
+  if (centerPinMarker) map.removeLayer(centerPinMarker);
 
+  // 1. Neon-Grüner Radius-Kreis
   radiusCircleLayer = L.circle([lat, lng], {
     radius: radiusKm * 1000,
     color: "#10b981",
@@ -73,6 +110,21 @@ function updateRadiusCircle(lat, lng) {
     dashArray: "5, 5"
   }).addTo(map);
 
+  // 2. Mittelpunkt Pin-Nadel (Eigenes SVG Icon)
+  const pinIcon = L.divIcon({
+    className: 'center-pin-wrapper',
+    html: `
+      <div class="center-pin" style="width:24px; height:24px; background:#10b981; border:3px solid #ffffff; border-radius:50%; box-shadow:0 0 15px #10b981; display:flex; align-items:center; justify-center;">
+        <div style="width:6px; height:6px; background:#0b1120; border-radius:50%; margin:auto;"></div>
+      </div>
+    `,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12]
+  });
+
+  centerPinMarker = L.marker([lat, lng], { icon: pinIcon }).addTo(map);
+
+  // Ansicht auf den Radius-Bereich ausrichten
   map.fitBounds(radiusCircleLayer.getBounds(), { padding: [30, 30] });
 }
 
@@ -131,6 +183,7 @@ function executeSearch() {
   if (query === "") {
     currentSearchCenter = null;
     if (radiusCircleLayer) map.removeLayer(radiusCircleLayer);
+    if (centerPinMarker) map.removeLayer(centerPinMarker);
     applyAllFilters();
     return;
   }
@@ -142,7 +195,7 @@ function executeSearch() {
         const lat = parseFloat(results[0].lat);
         const lon = parseFloat(results[0].lon);
         currentSearchCenter = { lat, lng: lon };
-        updateRadiusCircle(lat, lon);
+        updateRadiusAndPin(lat, lon);
         applyAllFilters();
       }
     });
