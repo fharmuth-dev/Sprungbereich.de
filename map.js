@@ -84,7 +84,6 @@ async function updateCountrySelection(countryCode) {
 
   map.setView([conf.lat, conf.lng], conf.zoom);
 
-  // Regionen-Grenze beim Länderwechsel zurücksetzen
   if (regionBorderLayer) {
     map.removeLayer(regionBorderLayer);
     regionBorderLayer = null;
@@ -101,7 +100,7 @@ async function updateCountrySelection(countryCode) {
     if (data && data[0] && data[0].geojson) {
       countryBorderLayer = L.geoJSON(data[0].geojson, {
         style: {
-          color: "#00f2fe", // Cyan für den Staat
+          color: "#00f2fe",
           weight: 2,
           opacity: 0.7,
           fillColor: "#00f2fe",
@@ -114,31 +113,43 @@ async function updateCountrySelection(countryCode) {
   }
 }
 
-// 2. Dynamisches Bundesland / Kanton / Region (z.B. Ulm -> Baden-Württemberg) in Grün/Neon hervorheben
-async function highlightRegionForLocation(lat, lon) {
+// 2. Zuverlässiges Laden des echten Bundeslandes / Kantons (z.B. "Baden-Württemberg")
+async function highlightStateForLocation(lat, lon, countryCode) {
   if (regionBorderLayer) {
     map.removeLayer(regionBorderLayer);
     regionBorderLayer = null;
   }
 
   try {
-    // Reverse Geocoding mit Polygon-Daten, um exakt das Bundesland/den Kanton zu ermitteln
-    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&polygon_geojson=1`);
-    const data = await res.json();
+    // Wir fragen Nominatim explizit nach adressdetails ab, um an den Namen des Bundeslandes/Kantons zu kommen
+    const revRes = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=6`);
+    const revData = await revRes.json();
     
-    if (data && data.geojson) {
-      regionBorderLayer = L.geoJSON(data.geojson, {
-        style: {
-          color: "#10b981", // Sattes Emerald-Grün für das Bundesland / die Region
-          weight: 3,
-          opacity: 0.9,
-          fillColor: "#10b981",
-          fillOpacity: 0.08 // Subtiler farbiger Teppich über dem Bundesland
-        }
-      }).addTo(map);
+    let stateName = "";
+    if (revData && revData.address) {
+      // In DE/AT/CH heißt das Feld in der Adresse meist 'state'
+      stateName = revData.address.state || revData.address.region || "";
+    }
+
+    if (stateName) {
+      // Jetzt suchen wir exakt nach diesem Bundesland, damit wir das saubere GeoJSON-Polygon der Landesfläche bekommen
+      const searchRes = await fetch(`https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&q=${encodeURIComponent(stateName)}&countrycodes=${countryCode}&limit=1`);
+      const searchData = await searchRes.json();
+
+      if (searchData && searchData[0] && searchData[0].geojson) {
+        regionBorderLayer = L.geoJSON(searchData[0].geojson, {
+          style: {
+            color: "#10b981", // Sattes Neon-Grün für das Bundesland / den Kanton
+            weight: 3,
+            opacity: 0.9,
+            fillColor: "#10b981",
+            fillOpacity: 0.06
+          }
+        }).addTo(map);
+      }
     }
   } catch (e) {
-    console.log("Region-Grenze konnte nicht geladen werden.");
+    console.log("Bundesland-Grenze konnte nicht geladen werden.");
   }
 }
 
@@ -198,12 +209,11 @@ function executeSearch() {
 
   if (query !== "") {
     if (filtered.length > 0) {
-      // Wenn ein Spot direkt matcht, dorthin springen und dessen Region anzeigen
       const target = filtered[0];
-      map.setView([target.lat, target.lng], 11);
-      highlightRegionForLocation(target.lat, target.lng);
+      map.setView([target.lat, target.lng], 10);
+      highlightStateForLocation(target.lat, target.lng, country);
     } else {
-      // PLZ oder Stadt-Suche (z.B. Ulm) via Nominatim auflösen
+      // PLZ oder Stadt-Suche (z.B. Ulm) via Nominatim
       fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=${country}`)
         .then(res => res.json())
         .then(results => {
@@ -212,10 +222,10 @@ function executeSearch() {
             const lon = parseFloat(results[0].lon);
             
             // Auf den gesuchten Ort zoomen
-            map.setView([lat, lon], 11);
+            map.setView([lat, lon], 10);
             
-            // Automatisch die grüne Bundesland-/Regions-Umrandung laden!
-            highlightRegionForLocation(lat, lon);
+            // Jetzt exakt das übergeordnete Bundesland/Kanton grün umranden lassen!
+            highlightStateForLocation(lat, lon, country);
           } else {
             alert("Kein Ort gefunden. Du kannst diesen Spot aber über den '+' Button anlegen!");
           }
