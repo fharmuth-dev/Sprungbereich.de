@@ -14,6 +14,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <link rel="stylesheet" href="style.css">
   
+  <!-- Supabase JS Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
@@ -195,7 +196,7 @@
 
         <!-- Randnotiz für Admin-Freigabe -->
         <p class="admin-notice">
-          ℹ️ <strong>Hinweis:</strong> Nach dem Eintragen ist der Spot sofort temporär auf der Map zu sehen. Er wird final durch einen Admin geprüft und verifiziert.
+          ℹ️ <strong>Hinweis:</strong> Nach dem Eintragen wird dein Spot in der Datenbank gespeichert und nach einer Prüfung durch den Admin freigeschaltet.
         </p>
 
         <button type="submit" class="btn-submit-spot">SPOT HINZUFÜGEN 💦</button>
@@ -219,6 +220,7 @@
     </div>
   </div>
 
+  <!-- Scripts -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="map.js"></script>
 </body>
