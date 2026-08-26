@@ -5,7 +5,7 @@ let radiusCircleLayer = null;
 let centerPinMarker = null;
 let currentSearchCenter = null;
 
-// Die Liste startet JETZT KOMPLETT LEER
+// Die Liste startet KOMPLETT LEER für echte Community-Einträge
 let allSpots = [];
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -14,6 +14,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const loader = document.getElementById("loadingScreen");
     if (loader) loader.classList.add("fade-out");
   }, 3500);
+
+  // Skate 3 Arcade Titel-Animation generieren
+  renderGraffitiTitle("Deine Location dabei?");
 
   // Map initialisieren
   map = L.map("map", { zoomControl: false }).setView([51.1657, 10.4515], 6);
@@ -25,7 +28,6 @@ document.addEventListener("DOMContentLoaded", () => {
   markersGroup = L.layerGroup().addTo(map);
   L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-  // Deutschland-Grenze rendern
   drawGermanyOutline();
 
   // Event Listener für Filter
@@ -45,25 +47,54 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.key === "Enter") executeSearch();
   });
 
-  // UX FIX 1: Schließen-Button (X) Event
+  // Event Listener für Detail-Panel & Modal
   document.getElementById("closeSheetBtn").addEventListener("click", () => closeBottomSheet(true));
+  document.getElementById("openAddModalBtn").addEventListener("click", openAddModal);
+  document.getElementById("closeAddModalBtn").addEventListener("click", closeAddModal);
 
-  // UX FIX 2: Klick auf die Karte schließt das Detail-Panel
+  // Formular Absenden
+  document.getElementById("addSpotForm").addEventListener("submit", handleAddSpotSubmit);
+
+  // Klick auf Map schließt Fenster
   map.on("click", () => {
     closeBottomSheet(true);
   });
 
-  // UX FIX 3: Handy-Zurück-Taste abfangen
+  // Zurück-Taste am Handy
   window.addEventListener("popstate", () => {
     const sheet = document.getElementById("bottomSheet");
     if (sheet.classList.contains("active")) {
       closeBottomSheet(false);
     }
+    closeAddModal();
   });
 
-  // Initial Suche
   executeSearch();
 });
+
+// Hilfsfunktion: Rendert Buchstaben dynamisch im Arcade/Graffiti Style
+function renderGraffitiTitle(text) {
+  const container = document.getElementById("dynamicGraffitiTitle");
+  container.innerHTML = "";
+  
+  // Größenschema für die Buchstaben (Welle / dynamisch abfallend)
+  const fontSizes = [22, 18, 16, 17, 19, 21, 17, 15, 18, 20, 16, 18, 17, 19, 21, 16, 18, 20, 22, 17, 19];
+
+  text.split("").forEach((char, index) => {
+    const span = document.createElement("span");
+    span.className = "g-letter";
+    span.textContent = char === " " ? "\u00A0" : char;
+    
+    const size = fontSizes[index % fontSizes.length];
+    span.style.fontSize = `${size}px`;
+    
+    // Leichte zufällige/abwechselnde Neigung
+    const rotate = (index % 2 === 0 ? 3 : -3);
+    span.style.transform = `rotate(${rotate}deg)`;
+
+    container.appendChild(span);
+  });
+}
 
 function drawGermanyOutline() {
   fetch(`https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&country=Germany&limit=1`)
@@ -125,16 +156,11 @@ function updateRadiusAndPin(lat, lng) {
   map.fitBounds(radiusCircleLayer.getBounds(), { padding: [30, 30] });
 }
 
-// Hilfsfunktion: Gibt jedem Spot seine exakte Farbe
 function getSpotColor(type) {
   switch (type) {
-    case "Freibad":
-      return "#ffd166"; // Gelb
-    case "Hallenbad":
-      return "#a855f7"; // Lila
-    case "See":
-    default:
-      return "#00f2fe"; // Blau
+    case "Freibad": return "#ffd166"; // Gelb
+    case "Hallenbad": return "#a855f7"; // Lila
+    case "See": default: return "#00f2fe"; // Blau
   }
 }
 
@@ -155,8 +181,7 @@ function applyAllFilters() {
     let matchQuery = true;
     if (!currentSearchCenter && query !== "") {
       matchQuery = spot.name.toLowerCase().includes(query) || 
-                   spot.city.toLowerCase().includes(query) || 
-                   (spot.zip && spot.zip.includes(query));
+                   spot.city.toLowerCase().includes(query);
     }
 
     let matchRadius = true;
@@ -171,7 +196,7 @@ function applyAllFilters() {
     const spotColor = getSpotColor(spot.type);
 
     const marker = L.circleMarker([spot.lat, spot.lng], {
-      radius: 9,
+      radius: 10,
       fillColor: spotColor,
       color: "#ffffff",
       weight: 2,
@@ -180,9 +205,7 @@ function applyAllFilters() {
     });
 
     marker.on("add", () => {
-      if (marker._path) {
-        marker._path.style.cursor = "pointer";
-      }
+      if (marker._path) marker._path.style.cursor = "pointer";
     });
 
     marker.on("click", (e) => {
@@ -192,6 +215,61 @@ function applyAllFilters() {
 
     markersGroup.addLayer(marker);
   });
+}
+
+/* Modal Steuerung */
+function openAddModal() {
+  document.getElementById("addSpotModal").classList.add("active");
+}
+
+function closeAddModal() {
+  document.getElementById("addSpotModal").classList.remove("active");
+}
+
+/* Neues Spot-Formular Verarbeiten (Lokal zur Vorschau) */
+function handleAddSpotSubmit(e) {
+  e.preventDefault();
+
+  const name = document.getElementById("newSpotName").value.trim();
+  const city = document.getElementById("newSpotCity").value.trim();
+  const type = document.getElementById("newSpotType").value;
+  const height = parseFloat(document.getElementById("newSpotHeight").value);
+
+  if (!name || !city) return;
+
+  // Koordinaten per Nominatim für die Stadt holen & Spot eintragen
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city + ", Germany")}`)
+    .then(res => res.json())
+    .then(results => {
+      let lat = currentSearchCenter ? currentSearchCenter.lat : 51.1657;
+      let lng = currentSearchCenter ? currentSearchCenter.lng : 10.4515;
+
+      if (results && results.length > 0) {
+        lat = parseFloat(results[0].lat);
+        lng = parseFloat(results[0].lon);
+      }
+
+      const newSpot = {
+        id: Date.now(),
+        name: name,
+        city: city,
+        type: type,
+        height: height,
+        verified: false, // Neue Eintrags-Spots sind unbestätigte Community-Spots
+        lat: lat,
+        lng: lng
+      };
+
+      allSpots.push(newSpot);
+      applyAllFilters();
+      closeAddModal();
+
+      // Formular aufräumen
+      document.getElementById("addSpotForm").reset();
+
+      // Karte auf neuen Spot zentrieren
+      map.setView([lat, lng], 12);
+    });
 }
 
 function openBottomSheet(spot) {
@@ -211,7 +289,6 @@ function openBottomSheet(spot) {
   }
 
   navBtn.href = `https://www.google.com/maps/dir/?api=1&destination=${spot.lat},${spot.lng}`;
-
   sheet.classList.add("active");
 
   if (!history.state || !history.state.sheetOpen) {
