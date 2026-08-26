@@ -1,3 +1,10 @@
+// === DEINE SUPABASE ZUGANGSDATEN ===
+const SUPABASE_URL = "https://bmngqythtalsddqtfuib.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_TPwfBJvsktOEDPZmQAcG0w_AnYnaQeW";
+
+// Supabase Client initialisieren
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 let map;
 let markersGroup;
 let countryBorderLayer = null;
@@ -60,8 +67,41 @@ document.addEventListener("DOMContentLoaded", () => {
     closeAddModal();
   });
 
-  executeSearch();
+  // Spots direkt aus der Supabase-Datenbank laden
+  loadSpotsFromSupabase();
 });
+
+// Spots aus Supabase laden & auf Map-Format mappen
+async function loadSpotsFromSupabase() {
+  try {
+    const { data, error } = await supabase
+      .from('spots')
+      .select('*');
+
+    if (error) {
+      console.error("Fehler beim Laden aus Supabase:", error);
+      return;
+    }
+
+    // Felder aus Supabase an das lokale Format anpassen
+    allSpots = data.map(spot => ({
+      id: spot.id,
+      name: spot.title,
+      city: spot.description,
+      type: spot.type,
+      height: spot.height,
+      facilities: spot.facilities || [],
+      verified: spot.status === 'approved',
+      status: spot.status,
+      lat: spot.latitude,
+      lng: spot.longitude
+    }));
+
+    applyAllFilters();
+  } catch (err) {
+    console.error("Netzwerkfehler:", err);
+  }
+}
 
 function renderGraffitiTitle(text) {
   const container = document.getElementById("dynamicGraffitiTitle");
@@ -162,7 +202,6 @@ function applyAllFilters() {
   markersGroup.clearLayers();
 
   const filtered = allSpots.filter(spot => {
-    // Es wird geprüft, ob die maximal vorhandene Höhe des Spots den Filter erfüllt
     const matchHeight = (spot.height || 0) >= minHeight;
     const matchType = type === "all" || spot.type === type;
     const matchVerified = !verifiedOnly || spot.verified === true;
@@ -214,7 +253,7 @@ function closeAddModal() {
   document.getElementById("addSpotModal").classList.remove("active");
 }
 
-/* Verarbeiten der Mehrfachauswahl der Checkboxen */
+/* Formular-Submit mit Supabase-Speicherung */
 function handleAddSpotSubmit(e) {
   e.preventDefault();
 
@@ -222,7 +261,6 @@ function handleAddSpotSubmit(e) {
   const city = document.getElementById("newSpotCity").value.trim();
   const type = document.getElementById("newSpotType").value;
 
-  // Ausgewählte Checkboxen sammeln
   const checkedBoxes = document.querySelectorAll(".height-cb:checked");
   
   if (checkedBoxes.length === 0) {
@@ -230,13 +268,11 @@ function handleAddSpotSubmit(e) {
     return;
   }
 
-  const selectedHeights = [];
   const selectedLabels = [];
   let maxHeight = 0;
 
   checkedBoxes.forEach(cb => {
     const val = parseFloat(cb.value);
-    selectedHeights.push(val);
     selectedLabels.push(cb.dataset.label);
     if (val > maxHeight) maxHeight = val;
   });
@@ -245,7 +281,7 @@ function handleAddSpotSubmit(e) {
 
   fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city + ", Germany")}`)
     .then(res => res.json())
-    .then(results => {
+    .then(async results => {
       let lat = currentSearchCenter ? currentSearchCenter.lat : 51.1657;
       let lng = currentSearchCenter ? currentSearchCenter.lng : 10.4515;
 
@@ -254,22 +290,33 @@ function handleAddSpotSubmit(e) {
         lng = parseFloat(results[0].lon);
       }
 
-      const newSpot = {
-        id: Date.now(),
-        name: name,
-        city: city,
-        type: type,
-        height: maxHeight, // Höchstes Element für den Filter
-        facilities: selectedLabels, // Alle ausgewählten Elemente speichern
-        verified: false,
-        lat: lat,
-        lng: lng
-      };
+      // In Supabase einfügen (Standard-Status ist 'pending')
+      const { data, error } = await supabase
+        .from('spots')
+        .insert([
+          {
+            title: name,
+            description: city,
+            type: type,
+            height: maxHeight,
+            facilities: selectedLabels,
+            latitude: lat,
+            longitude: lng,
+            status: 'pending'
+          }
+        ])
+        .select();
 
-      allSpots.push(newSpot);
-      applyAllFilters();
+      if (error) {
+        console.error("Fehler beim Speichern in Supabase:", error);
+        alert("Fehler beim Speichern: " + error.message);
+        return;
+      }
+
+      // Daten neu aus Supabase ziehen
+      await loadSpotsFromSupabase();
+
       closeAddModal();
-
       document.getElementById("addSpotForm").reset();
       map.setView([lat, lng], 12);
     });
@@ -284,7 +331,6 @@ function openBottomSheet(spot) {
   document.getElementById("poolTitle").textContent = spot.name;
   document.getElementById("poolType").textContent = `${spot.type} • Max. ${spot.height}m Turm`;
   
-  // Vorhandene Sprungelemente als Chips anzeigen
   facilitiesContainer.innerHTML = "";
   if (spot.facilities && spot.facilities.length > 0) {
     spot.facilities.forEach(label => {
