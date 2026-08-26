@@ -1,78 +1,17 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Sprungbereich.de — Premium Sprungspots entdecken</title>
-  
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="style.css">
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#060913">
-
-  <!-- GSAP & Supabase -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-<body>
-
-  <!-- Dezente Sprachauswahl oben rechts -->
-  <div class="lang-switch-global">
-    <button id="langDeBtn" class="lang-btn active">DE</button>
-    <span class="lang-divider">|</span>
-    <button id="langEnBtn" class="lang-btn">EN</button>
-  </div>
-
-  <!-- Immersive Splash Screen mit Bundesland-Auswahl -->
-  <div id="splashScreen" class="splash-screen">
-    <div class="splash-glow"></div>
-    <div class="splash-content">
-      <div class="brand-logo-badge">
-        <span class="badge-icon">🌊</span>
-      </div>
-      <h1 class="splash-title">Sprungbereich<span>.de</span></h1>
-      <p class="splash-subtitle" data-i18n="subtitle">Die ultimative Map für Turm- und Klippenspringen in Deutschland</p>
-
-      <div class="splash-country-card">
-        <div class="select-wrapper">
-          <label for="stateSearchInput" data-i18n="selectStateLabel">Bundesland wählen</label>
-          
-          <!-- Suche / Filter für Bundesländer -->
-          <input type="text" id="stateSearchInput" placeholder="Z.B. Bayern, Baden-Württemberg..." autocomplete="off">
-          
-          <!-- Scrollbares Karussell / Vorschlagsliste -->
-          <div id="stateSuggestions" class="state-carousel">
-            <!-- Dynamisch via JavaScript befüllt -->
-          </div>
-        </div>
-
-        <button id="startMapBtn" class="btn-primary-start">
-          <span data-i18n="startBtn">Karte erkunden</span>
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-        </button>
-      </div>
-    </div>
-  </div>
-
-  <!-- Leaflet Map Container -->
-  <div id="map"></div>
-
-  <!-- Floating Glassmorphism Header & Search -->
-  <header class="top-overlay" id="topOverlay">
-    <div class="brand-header">
-      <div class="mini-logo">🌊</div>
-      <div>
-        <h1 class="site-title">Sprungbereich<span>.de</span></h1>
-        <p class="tagline" data-i18n="tagline">Live Filter & Spots</p>
-      </div>
-    </div>
-
-    <div class="search-panel">
+<div class="search-panel">
       <div class="search-row">
         <div class="input-container">
           <input type="text" id="searchInput" placeholder="Ort oder PLZ eingeben..." data-i18n-ph="searchPlaceholder">
         </div>
+        
+        <!-- Neues Radius-Dropdown -->
+        <select id="radiusFilter" class="glass-select radius-select">
+          <option value="10">10 km</option>
+          <option value="25" selected>25 km</option>
+          <option value="50">50 km</option>
+          <option value="100">100 km</option>
+        </select>
+
         <button id="searchBtn" class="btn-search-glow" title="Suchen">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
         </button>
@@ -104,42 +43,3 @@
         </label>
       </div>
     </div>
-  </header>
-
-  <!-- Floating Action Button (Neuer Spot) -->
-  <a href="eintragen.html" class="fab-btn" title="Neuen Spot eintragen">
-    <span>+</span>
-  </a>
-
-  <!-- Bottom Sheet (Details) -->
-  <div id="bottomSheet" class="bottom-sheet">
-    <div class="sheet-indicator"></div>
-    <div class="sheet-body">
-      <div class="sheet-top">
-        <div>
-          <span id="poolType" class="pill-badge">Freibad</span>
-          <h2 id="poolTitle">Spot Name</h2>
-        </div>
-        <span id="verifiedBadge" class="badge-verified">Verifiziert</span>
-      </div>
-      
-      <div class="sheet-divider"></div>
-
-      <div class="action-dock">
-        <a id="navBtn" href="#" target="_blank" class="btn-action-primary">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
-          <span data-i18n="startRoute">Route starten</span>
-        </a>
-        <a id="editBtn" href="eintragen.html" class="btn-action-secondary" data-i18n="editData">
-          Daten anpassen
-        </a>
-      </div>
-    </div>
-  </div>
-
-  <!-- Scripts -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="map.js"></script>
-  <script src="app.js"></script>
-</body>
-</html>
