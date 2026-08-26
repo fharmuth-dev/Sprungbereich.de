@@ -32,7 +32,6 @@ body, html {
   visibility: hidden;
 }
 
-/* Deutlich größere Überschrift mit Einschweb-Effekt */
 .brand-title {
   font-family: 'Story Script', cursive;
   font-size: 4.5rem;
@@ -101,7 +100,6 @@ body, html {
   z-index: 1;
 }
 
-/* Custom Center Pin Pulsieren */
 .center-pin {
   animation: pulsePin 2s infinite;
 }
@@ -161,7 +159,6 @@ body, html {
   margin-bottom: 3px;
 }
 
-/* Input & Select Fields */
 .search-panel input[type="text"],
 .glass-select {
   width: 100%;
@@ -255,10 +252,10 @@ body, html {
   background: #0b1120;
 }
 
-/* Bottom Sheet */
+/* Bottom Sheet (Detail Panel) */
 .bottom-sheet {
   position: absolute;
-  bottom: -200px;
+  bottom: -220px;
   left: 0;
   right: 0;
   z-index: 1000;
@@ -266,10 +263,78 @@ body, html {
   border-top-left-radius: 20px;
   border-top-right-radius: 20px;
   padding: 20px;
-  transition: bottom 0.3s ease;
+  transition: bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.bottom-sheet.active { bottom: 0; }
-.badge { display: inline-block; padding: 4px 8px; border-radius: 6px; font-size: 11px; margin-bottom: 12px; }
-.btn-nav { display: block; text-align: center; padding: 10px; background: #00f2fe; color: #0b1120; font-weight: bold; text-decoration: none; border-radius: 10px; }
+.bottom-sheet.active { 
+  bottom: 0; 
+}
+
+/* Floating X-Schließen-Button */
+.btn-close-sheet {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.btn-close-sheet:active {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.sheet-content h2 {
+  font-size: 1.25rem;
+  margin-bottom: 4px;
+  padding-right: 36px; /* Platz für das X */
+}
+
+.sheet-content p {
+  color: #94a3b8;
+  font-size: 0.9rem;
+  margin-bottom: 10px;
+}
+
+.badge { 
+  display: inline-block; 
+  padding: 4px 10px; 
+  border-radius: 6px; 
+  font-size: 11px; 
+  font-weight: 600;
+  margin-bottom: 16px; 
+}
+
+.badge.verified {
+  background: rgba(0, 242, 254, 0.15);
+  color: #00f2fe;
+  border: 1px solid rgba(0, 242, 254, 0.3);
+}
+
+.badge.community {
+  background: rgba(255, 183, 3, 0.15);
+  color: #ffb703;
+  border: 1px solid rgba(255, 183, 3, 0.3);
+}
+
+.btn-nav { 
+  display: block; 
+  text-align: center; 
+  padding: 12px; 
+  background: linear-gradient(135deg, #00f2fe, #4facfe); 
+  color: #0b1120; 
+  font-weight: 700; 
+  text-decoration: none; 
+  border-radius: 12px; 
+}
