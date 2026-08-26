@@ -1,45 +1,84 @@
-<div class="search-panel">
-      <div class="search-row">
-        <div class="input-container">
-          <input type="text" id="searchInput" placeholder="Ort oder PLZ eingeben..." data-i18n-ph="searchPlaceholder">
-        </div>
-        
-        <!-- Neues Radius-Dropdown -->
-        <select id="radiusFilter" class="glass-select radius-select">
-          <option value="10">10 km</option>
-          <option value="25" selected>25 km</option>
-          <option value="50">50 km</option>
-          <option value="100">100 km</option>
-        </select>
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sprungbereich - Schwimmbad Finden</title>
 
-        <button id="searchBtn" class="btn-search-glow" title="Suchen">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        </button>
+  <!-- Leaflet CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <!-- Eigenes CSS -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Supabase SDK (Optional) -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+<body>
+
+  <!-- Das Karten-Element -->
+  <div id="map"></div>
+
+  <!-- Such- & Filter-Panel -->
+  <div class="search-panel">
+    <div class="search-row">
+      <div class="input-container">
+        <input type="text" id="searchInput" placeholder="Ort oder PLZ eingeben..." data-i18n-ph="searchPlaceholder">
       </div>
+      
+      <!-- Radius Dropdown -->
+      <select id="radiusFilter" class="glass-select radius-select">
+        <option value="10">10 km</option>
+        <option value="25" selected>25 km</option>
+        <option value="50">50 km</option>
+        <option value="100">100 km</option>
+      </select>
 
-      <div class="filter-row">
-        <select id="heightFilter" class="glass-select">
-          <option value="0" data-i18n="allHeights">⚡ Alle Höhen</option>
-          <option value="1" data-i18n="h1">1m Brett / Plattform</option>
-          <option value="3" data-i18n="h3">Ab 3m Turm</option>
-          <option value="5" data-i18n="h5">Ab 5m Turm</option>
-          <option value="7.5" data-i18n="h75">Ab 7.5m Turm</option>
-          <option value="10" data-i18n="h10">🔥 10m Profi-Turm</option>
-        </select>
+      <button id="searchBtn" class="btn-search-glow" title="Suchen">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </button>
+    </div>
 
-        <select id="typeFilter" class="glass-select">
-          <option value="all" data-i18n="allTypes">🏊‍♂️ Alle Typen</option>
-          <option value="Freibad" data-i18n="freibad">Freibad</option>
-          <option value="Hallenbad" data-i18n="hallenbad">Hallenbad</option>
-          <option value="See" data-i18n="see">See / Klippe</option>
-        </select>
-      </div>
+    <div class="filter-row">
+      <select id="heightFilter" class="glass-select">
+        <option value="0" data-i18n="allHeights">⚡ Alle Höhen</option>
+        <option value="1" data-i18n="h1">1m Brett / Plattform</option>
+        <option value="3" data-i18n="h3">Ab 3m Turm</option>
+        <option value="5" data-i18n="h5">Ab 5m Turm</option>
+        <option value="7.5" data-i18n="h75">Ab 7.5m Turm</option>
+        <option value="10" data-i18n="h10">🔥 10m Profi-Turm</option>
+      </select>
 
-      <div class="filter-footer">
-        <label class="toggle-container">
-          <input type="checkbox" id="verifiedOnlyToggle">
-          <span class="toggle-custom"></span>
-          <span class="toggle-text" data-i18n="verifiedToggle">Nur verifizierte Spots</span>
-        </label>
+      <select id="typeFilter" class="glass-select">
+        <option value="all" data-i18n="allTypes">🏊‍♂️ Alle Typen</option>
+        <option value="Freibad" data-i18n="freibad">Freibad</option>
+        <option value="Hallenbad" data-i18n="hallenbad">Hallenbad</option>
+        <option value="See" data-i18n="see">See / Klippe</option>
+      </select>
+    </div>
+
+    <div class="filter-footer">
+      <label class="toggle-container">
+        <input type="checkbox" id="verifiedOnlyToggle">
+        <span class="toggle-custom"></span>
+        <span class="toggle-text" data-i18n="verifiedToggle">Nur verifizierte Spots</span>
+      </label>
+    </div>
+  </div>
+
+  <!-- Bottom Sheet für Spot Details -->
+  <div id="bottomSheet" class="bottom-sheet">
+    <div class="sheet-content">
+      <h2 id="poolTitle">Badname</h2>
+      <p id="poolType">Typ & Höhe</p>
+      <span id="verifiedBadge" class="badge">Status</span>
+      <div class="sheet-actions">
+        <a id="navBtn" href="#" target="_blank" class="btn-nav">Route starten</a>
       </div>
     </div>
+  </div>
+
+  <!-- Leaflet JS & Map Script -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="map.js"></script>
+</body>
+</html>
