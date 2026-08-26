@@ -13,7 +13,7 @@ body, html {
   color: #fff;
 }
 
-/* Loading Screen */
+/* Loading Screen & Animationen */
 .loading-screen {
   position: fixed;
   inset: 0;
@@ -24,7 +24,7 @@ body, html {
   justify-content: center;
   text-align: center;
   padding: 24px;
-  transition: opacity 0.5s ease, visibility 0.5s;
+  transition: opacity 0.8s ease, visibility 0.8s;
 }
 
 .loading-screen.fade-out {
@@ -32,37 +32,63 @@ body, html {
   visibility: hidden;
 }
 
+/* Deutlich größere Überschrift mit Einschweb-Effekt */
 .brand-title {
   font-family: 'Story Script', cursive;
-  font-size: 3rem;
+  font-size: 4.5rem;
   font-weight: 400;
   background: linear-gradient(135deg, #00f2fe, #4facfe);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
-  margin-bottom: 8px;
-  letter-spacing: 1px;
+  margin-bottom: 12px;
+  letter-spacing: 1.5px;
+}
+
+.animated-title {
+  opacity: 0;
+  transform: translateY(20px);
+  animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.2s;
 }
 
 .brand-claim {
-  font-size: 0.95rem;
+  font-size: 1.1rem;
   color: #94a3b8;
-  max-width: 300px;
-  margin: 0 auto 24px auto;
-  line-height: 1.4;
+  max-width: 340px;
+  margin: 0 auto 30px auto;
+  line-height: 1.5;
 }
 
-.spinner {
-  width: 32px;
-  height: 32px;
-  border: 3px solid rgba(0, 242, 254, 0.15);
-  border-top-color: #00f2fe;
-  border-radius: 50%;
+.animated-claim {
+  opacity: 0;
+  transform: translateY(15px);
+  animation: fadeInUp 1s cubic-bezier(0.16, 1, 0.3, 1) forwards 0.5s;
+}
+
+.progress-bar-container {
+  width: 180px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
   margin: 0 auto;
-  animation: spin 0.8s linear infinite;
+  overflow: hidden;
 }
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
+.progress-bar-fill {
+  width: 0%;
+  height: 100%;
+  background: linear-gradient(90deg, #00f2fe, #10b981);
+  animation: loadProgress 3.2s linear forwards 0.2s;
+}
+
+@keyframes fadeInUp {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes loadProgress {
+  to { width: 100%; }
 }
 
 /* Map Element */
@@ -73,6 +99,17 @@ body, html {
   top: 0;
   left: 0;
   z-index: 1;
+}
+
+/* Custom Center Pin Pulsieren */
+.center-pin {
+  animation: pulsePin 2s infinite;
+}
+
+@keyframes pulsePin {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
 }
 
 /* Glass UI Panel */
@@ -125,7 +162,6 @@ body, html {
 }
 
 /* Input & Select Fields */
-.input-container input,
 .search-panel input[type="text"],
 .glass-select {
   width: 100%;
