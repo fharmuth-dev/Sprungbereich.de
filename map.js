@@ -5,20 +5,16 @@ let radiusCircleLayer = null;
 let centerPinMarker = null;
 let currentSearchCenter = null;
 
-// Die Liste startet KOMPLETT LEER für echte Community-Einträge
 let allSpots = [];
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Loading Screen ausblenden
   setTimeout(() => {
     const loader = document.getElementById("loadingScreen");
     if (loader) loader.classList.add("fade-out");
   }, 3500);
 
-  // Skate 3 Arcade Titel-Animation generieren
   renderGraffitiTitle("Deine Location dabei?");
 
-  // Map initialisieren
   map = L.map("map", { zoomControl: false }).setView([51.1657, 10.4515], 6);
 
   L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
@@ -30,7 +26,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   drawGermanyOutline();
 
-  // Event Listener für Filter
   document.getElementById("heightFilter").addEventListener("change", applyAllFilters);
   document.getElementById("typeFilter").addEventListener("change", applyAllFilters);
   document.getElementById("verifiedOnlyToggle").addEventListener("change", applyAllFilters);
@@ -47,20 +42,16 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.key === "Enter") executeSearch();
   });
 
-  // Event Listener für Detail-Panel & Modal
   document.getElementById("closeSheetBtn").addEventListener("click", () => closeBottomSheet(true));
   document.getElementById("openAddModalBtn").addEventListener("click", openAddModal);
   document.getElementById("closeAddModalBtn").addEventListener("click", closeAddModal);
 
-  // Formular Absenden
   document.getElementById("addSpotForm").addEventListener("submit", handleAddSpotSubmit);
 
-  // Klick auf Map schließt Fenster
   map.on("click", () => {
     closeBottomSheet(true);
   });
 
-  // Zurück-Taste am Handy
   window.addEventListener("popstate", () => {
     const sheet = document.getElementById("bottomSheet");
     if (sheet.classList.contains("active")) {
@@ -72,12 +63,10 @@ document.addEventListener("DOMContentLoaded", () => {
   executeSearch();
 });
 
-// Hilfsfunktion: Rendert Buchstaben dynamisch im Arcade/Graffiti Style
 function renderGraffitiTitle(text) {
   const container = document.getElementById("dynamicGraffitiTitle");
   container.innerHTML = "";
   
-  // Größenschema für die Buchstaben (Welle / dynamisch abfallend)
   const fontSizes = [22, 18, 16, 17, 19, 21, 17, 15, 18, 20, 16, 18, 17, 19, 21, 16, 18, 20, 22, 17, 19];
 
   text.split("").forEach((char, index) => {
@@ -88,7 +77,6 @@ function renderGraffitiTitle(text) {
     const size = fontSizes[index % fontSizes.length];
     span.style.fontSize = `${size}px`;
     
-    // Leichte zufällige/abwechselnde Neigung
     const rotate = (index % 2 === 0 ? 3 : -3);
     span.style.transform = `rotate(${rotate}deg)`;
 
@@ -158,9 +146,9 @@ function updateRadiusAndPin(lat, lng) {
 
 function getSpotColor(type) {
   switch (type) {
-    case "Freibad": return "#ffd166"; // Gelb
-    case "Hallenbad": return "#a855f7"; // Lila
-    case "See": default: return "#00f2fe"; // Blau
+    case "Freibad": return "#ffd166";
+    case "Hallenbad": return "#a855f7";
+    case "See": default: return "#00f2fe";
   }
 }
 
@@ -174,6 +162,7 @@ function applyAllFilters() {
   markersGroup.clearLayers();
 
   const filtered = allSpots.filter(spot => {
+    // Es wird geprüft, ob die maximal vorhandene Höhe des Spots den Filter erfüllt
     const matchHeight = (spot.height || 0) >= minHeight;
     const matchType = type === "all" || spot.type === type;
     const matchVerified = !verifiedOnly || spot.verified === true;
@@ -217,7 +206,6 @@ function applyAllFilters() {
   });
 }
 
-/* Modal Steuerung */
 function openAddModal() {
   document.getElementById("addSpotModal").classList.add("active");
 }
@@ -226,18 +214,35 @@ function closeAddModal() {
   document.getElementById("addSpotModal").classList.remove("active");
 }
 
-/* Neues Spot-Formular Verarbeiten (Lokal zur Vorschau) */
+/* Verarbeiten der Mehrfachauswahl der Checkboxen */
 function handleAddSpotSubmit(e) {
   e.preventDefault();
 
   const name = document.getElementById("newSpotName").value.trim();
   const city = document.getElementById("newSpotCity").value.trim();
   const type = document.getElementById("newSpotType").value;
-  const height = parseFloat(document.getElementById("newSpotHeight").value);
+
+  // Ausgewählte Checkboxen sammeln
+  const checkedBoxes = document.querySelectorAll(".height-cb:checked");
+  
+  if (checkedBoxes.length === 0) {
+    alert("Bitte wähle mindestens ein Sprungelement / eine Höhe aus!");
+    return;
+  }
+
+  const selectedHeights = [];
+  const selectedLabels = [];
+  let maxHeight = 0;
+
+  checkedBoxes.forEach(cb => {
+    const val = parseFloat(cb.value);
+    selectedHeights.push(val);
+    selectedLabels.push(cb.dataset.label);
+    if (val > maxHeight) maxHeight = val;
+  });
 
   if (!name || !city) return;
 
-  // Koordinaten per Nominatim für die Stadt holen & Spot eintragen
   fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city + ", Germany")}`)
     .then(res => res.json())
     .then(results => {
@@ -254,8 +259,9 @@ function handleAddSpotSubmit(e) {
         name: name,
         city: city,
         type: type,
-        height: height,
-        verified: false, // Neue Eintrags-Spots sind unbestätigte Community-Spots
+        height: maxHeight, // Höchstes Element für den Filter
+        facilities: selectedLabels, // Alle ausgewählten Elemente speichern
+        verified: false,
         lat: lat,
         lng: lng
       };
@@ -264,10 +270,7 @@ function handleAddSpotSubmit(e) {
       applyAllFilters();
       closeAddModal();
 
-      // Formular aufräumen
       document.getElementById("addSpotForm").reset();
-
-      // Karte auf neuen Spot zentrieren
       map.setView([lat, lng], 12);
     });
 }
@@ -276,10 +279,22 @@ function openBottomSheet(spot) {
   const sheet = document.getElementById("bottomSheet");
   const badge = document.getElementById("verifiedBadge");
   const navBtn = document.getElementById("navBtn");
+  const facilitiesContainer = document.getElementById("poolFacilities");
 
   document.getElementById("poolTitle").textContent = spot.name;
   document.getElementById("poolType").textContent = `${spot.type} • Max. ${spot.height}m Turm`;
   
+  // Vorhandene Sprungelemente als Chips anzeigen
+  facilitiesContainer.innerHTML = "";
+  if (spot.facilities && spot.facilities.length > 0) {
+    spot.facilities.forEach(label => {
+      const chip = document.createElement("span");
+      chip.className = "facility-chip";
+      chip.textContent = label;
+      facilitiesContainer.appendChild(chip);
+    });
+  }
+
   if (spot.verified) {
     badge.textContent = "✅ Offiziell Verifiziert";
     badge.className = "badge verified";
