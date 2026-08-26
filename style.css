@@ -110,7 +110,7 @@ body, html {
   100% { transform: scale(1); }
 }
 
-/* Glass UI Panel (Klick-Durchlässigkeit gefixt) */
+/* Glass UI Panel */
 .search-panel {
   position: absolute;
   top: 16px;
@@ -126,7 +126,7 @@ body, html {
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 18px;
   box-shadow: 0 16px 32px rgba(0, 0, 0, 0.45);
-  pointer-events: auto; /* Stellt sicher, dass nur das Panel klickbar ist, nicht der freie Raum drumherum */
+  pointer-events: auto;
 }
 
 .search-row {
@@ -140,6 +140,42 @@ body, html {
   display: flex;
   gap: 6px;
   margin-bottom: 8px;
+}
+
+/* Farb-Legende */
+.legend-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 6px 10px;
+  margin-bottom: 8px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 6px rgba(0,0,0,0.5);
+}
+
+.dot-freibad { background: #ffd166; }  /* Gelb */
+.dot-hallenbad { background: #a855f7; } /* Lila */
+.dot-see { background: #00f2fe; }       /* Blau */
+
+.legend-text {
+  font-size: 11px;
+  color: #cbd5e1;
+  font-weight: 500;
 }
 
 .field-group {
