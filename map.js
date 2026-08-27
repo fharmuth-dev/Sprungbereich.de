@@ -25,10 +25,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
   renderGraffitiTitle("Deine Location dabei?");
 
+  // Karte initialisieren
   map = L.map("map", { zoomControl: false }).setView([51.1657, 10.4515], 6);
 
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-    maxZoom: 19
+  // KARTEN-PROVIDER: Kostenlose deutsche Dark-Map (OSM-basiert)
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png", {
+    maxZoom: 19,
+    subdomains: 'abcd'
+  });
+  
+  // Zuverlässiger dunkler OpenStreetMap-Tile-Server ohne API-Key auf Deutsch:
+  L.tileLayer("https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png", {
+    maxZoom: 20,
+    attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
   }).addTo(map);
 
   markersGroup = L.layerGroup().addTo(map);
@@ -54,7 +63,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("closeSheetBtn").addEventListener("click", () => closeBottomSheet(true));
   
-  // Über den normalen Button ("Spot hinzufügen") öffnen ohne Kartenauswahl
   document.getElementById("openAddModalBtn").addEventListener("click", () => {
     removeTempMarker();
     tempSelectedLatLng = null;
@@ -82,17 +90,16 @@ document.addEventListener("DOMContentLoaded", () => {
     closeAddModal();
   });
 
-  // Spots direkt aus der Supabase-Datenbank laden
+  // Spots aus Supabase laden
   loadSpotsFromSupabase();
 });
 
-// Temporären Pin auf der Karte setzen (verschiebbaren Marker anzeigen)
+// Temporären Pin auf der Karte setzen
 function placeTempMarker(latlng) {
-  removeTempMarker(); // Vorherigen Pin entfernen falls vorhanden
+  removeTempMarker();
 
   tempSelectedLatLng = latlng;
 
-  // Pin erstellen, der verschiebbar (draggable) ist
   tempMarker = L.marker(latlng, { draggable: true }).addTo(map);
 
   const popupContent = document.createElement("div");
@@ -108,13 +115,11 @@ function placeTempMarker(latlng) {
 
   tempMarker.bindPopup(popupContent, { closeButton: false }).openPopup();
 
-  // Position nach dem Verschieben aktualisieren
   tempMarker.on("dragend", (event) => {
     tempSelectedLatLng = event.target.getLatLng();
     tempMarker.openPopup();
   });
 
-  // Event Listener für die Popup-Buttons
   setTimeout(() => {
     const confirmBtn = document.getElementById("confirmSpotBtn");
     const cancelBtn = document.getElementById("cancelSpotBtn");
@@ -133,7 +138,6 @@ function placeTempMarker(latlng) {
   }, 100);
 }
 
-// Hilfsfunktion: Entfernt den temporären Auswahl-Pin
 function removeTempMarker() {
   if (tempMarker) {
     map.removeLayer(tempMarker);
@@ -141,11 +145,11 @@ function removeTempMarker() {
   }
 }
 
-// Spots aus Supabase laden & auf Map-Format mappen
+// Spots aus Supabase laden (Tabelle 'Spots' großgeschrieben)
 async function loadSpotsFromSupabase() {
   try {
     const { data, error } = await supabaseClient
-      .from('spots')
+      .from('Spots')
       .select('*');
 
     if (error) {
@@ -325,7 +329,7 @@ function closeAddModal() {
   tempSelectedLatLng = null;
 }
 
-/* Formular-Submit mit exakter Positions-Speicherung */
+/* Formular-Submit mit Speicherung in 'Spots' */
 async function handleAddSpotSubmit(e) {
   e.preventDefault();
 
@@ -354,12 +358,10 @@ async function handleAddSpotSubmit(e) {
   let lat = 51.1657;
   let lng = 10.4515;
 
-  // Geklickte Koordinaten haben Vorrang
   if (tempSelectedLatLng) {
     lat = tempSelectedLatLng.lat;
     lng = tempSelectedLatLng.lng;
   } else {
-    // Falls kein Punkt geklickt wurde, Ort/Adresse über Geocoding abfragen
     try {
       const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city + ", Germany")}`);
       const results = await res.json();
@@ -372,9 +374,9 @@ async function handleAddSpotSubmit(e) {
     }
   }
 
-  // In Supabase einfügen
+  // In Supabase 'Spots' einfügen
   const { data, error } = await supabaseClient
-    .from('spots')
+    .from('Spots')
     .insert([
       {
         title: name,
@@ -395,7 +397,6 @@ async function handleAddSpotSubmit(e) {
     return;
   }
 
-  // Aufräumen & Daten neu laden
   removeTempMarker();
   await loadSpotsFromSupabase();
 
