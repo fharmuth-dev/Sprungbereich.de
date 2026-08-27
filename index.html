@@ -130,7 +130,8 @@
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
 
-      <h2 class="modal-heading">NEUEN SPOT DROPPEN 🪂</h2>
+      <!-- Fallschirm-Emoji entfernt -->
+      <h2 class="modal-heading">NEUEN SPOT DROPPEN</h2>
       <p class="modal-sub">Trage die Infos deiner Sprunganlage ein:</p>
 
       <form id="addSpotForm">
@@ -144,12 +145,27 @@
           <input type="text" id="newSpotCity" placeholder="z. B. Ulm" required>
         </div>
 
+        <!-- NEU: Optionale Straßen-/Adressangabe -->
+        <div class="modal-field">
+          <label>Straße & Hausnummer (Optional)</label>
+          <input type="text" id="newSpotStreet" placeholder="z. B. Stadionstraße 5">
+        </div>
+
+        <!-- NEU: Option Standort direkt auf Karte picken -->
+        <div class="modal-field">
+          <label>Genaue Adresse bekannt?</label>
+          <button type="button" id="pickOnMapBtn" style="width:100%; padding: 10px; background: rgba(0, 242, 254, 0.15); border: 1px solid #00f2fe; color: #00f2fe; border-radius: 8px; font-weight: bold; cursor: pointer;">
+            Auf Karte markieren
+          </button>
+          <small id="locationStatusText" style="display: block; font-size: 11px; color: #10b981; margin-top: 4px;"></small>
+        </div>
+
         <div class="modal-field">
           <label>Kategorie</label>
           <select id="newSpotType" class="glass-select modal-select" required>
-            <option value="Freibad">🟡 Freibad</option>
-            <option value="Hallenbad">🟣 Hallenbad</option>
-            <option value="See">🔵 See / Klippe</option>
+            <option value="Freibad">Freibad</option>
+            <option value="Hallenbad">Hallenbad</option>
+            <option value="See">See / Klippe</option>
           </select>
         </div>
 
@@ -199,7 +215,8 @@
           ℹ️ <strong>Hinweis:</strong> Nach dem Eintragen wird dein Spot in der Datenbank gespeichert und nach einer Prüfung durch den Admin freigeschaltet.
         </p>
 
-        <button type="submit" class="btn-submit-spot">SPOT HINZUFÜGEN 💦</button>
+        <!-- Wassertropfen-Emoji entfernt -->
+        <button type="submit" class="btn-submit-spot">SPOT HINZUFÜGEN</button>
       </form>
     </div>
   </div>
