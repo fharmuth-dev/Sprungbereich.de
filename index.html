@@ -4,437 +4,224 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sprungbereich.de</title>
-  
+
+  <!-- Google Fonts: Story Script & Sedgwick Ave -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sedgwick+Ave&family=Story+Script&display=swap" rel="stylesheet">
+
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="style.css">
   
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    }
-
-    body, html {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background-color: #0b1120;
-      color: #ffffff;
-    }
-
-    #map {
-      width: 100%;
-      height: 100%;
-      z-index: 1;
-    }
-
-    /* Top Control Bar */
-    .top-controls {
-      position: absolute;
-      top: 15px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 1000;
-      width: 90%;
-      max-width: 500px;
-      background: rgba(15, 23, 42, 0.85);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      border-radius: 16px;
-      padding: 12px 16px;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .search-row {
-      display: flex;
-      gap: 8px;
-    }
-
-    .search-input {
-      flex: 1;
-      background: rgba(30, 41, 59, 0.8);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 8px;
-      padding: 8px 12px;
-      color: #fff;
-      font-size: 14px;
-      outline: none;
-    }
-
-    .search-input:focus {
-      border-color: #00f2fe;
-    }
-
-    .select-dropdown {
-      background: rgba(30, 41, 59, 0.8);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 8px;
-      padding: 8px;
-      color: #fff;
-      font-size: 13px;
-      outline: none;
-    }
-
-    .btn-search {
-      background: #00f2fe;
-      border: none;
-      border-radius: 8px;
-      padding: 0 12px;
-      color: #0b1120;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    .filter-row {
-      display: flex;
-      gap: 8px;
-      justify-content: space-between;
-    }
-
-    .filter-row select {
-      flex: 1;
-    }
-
-    .toggle-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-size: 12px;
-      color: #94a3b8;
-    }
-
-    /* Bottom Drop Bar */
-    .bottom-bar {
-      position: absolute;
-      bottom: 20px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 1000;
-      background: rgba(15, 23, 42, 0.9);
-      backdrop-filter: blur(12px);
-      border: 1px solid rgba(0, 242, 254, 0.3);
-      border-radius: 30px;
-      padding: 8px 20px;
-      display: flex;
-      align-items: center;
-      gap: 15px;
-      box-shadow: 0 0 20px rgba(0, 242, 254, 0.2);
-    }
-
-    .graffiti-title {
-      font-weight: 800;
-      color: #ff007f;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-
-    .btn-add {
-      background: linear-gradient(45deg, #ff007f, #7928ca);
-      border: none;
-      color: white;
-      padding: 8px 16px;
-      border-radius: 20px;
-      font-weight: bold;
-      cursor: pointer;
-      text-transform: uppercase;
-      font-size: 12px;
-      letter-spacing: 0.5px;
-    }
-
-    /* Bottom Sheet Details */
-    .bottom-sheet {
-      position: absolute;
-      bottom: -100%;
-      left: 0;
-      width: 100%;
-      background: #0f172a;
-      border-top: 1px solid rgba(255,255,255,0.1);
-      border-radius: 20px 20px 0 0;
-      padding: 20px;
-      z-index: 2000;
-      transition: bottom 0.3s ease-in-out;
-      box-shadow: 0 -10px 30px rgba(0,0,0,0.8);
-    }
-
-    .bottom-sheet.active {
-      bottom: 0;
-    }
-
-    .sheet-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-    }
-
-    .btn-close {
-      background: none;
-      border: none;
-      color: #94a3b8;
-      font-size: 20px;
-      cursor: pointer;
-    }
-
-    .badge {
-      display: inline-block;
-      padding: 4px 8px;
-      border-radius: 6px;
-      font-size: 11px;
-      font-weight: bold;
-      margin-top: 5px;
-    }
-    .badge.verified { background: rgba(16, 185, 129, 0.2); color: #10b981; }
-    .badge.community { background: rgba(245, 158, 11, 0.2); color: #f59e0b; }
-
-    .facility-chips {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-      margin: 12px 0;
-    }
-
-    .facility-chip {
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      padding: 4px 10px;
-      border-radius: 12px;
-      font-size: 12px;
-    }
-
-    .btn-nav {
-      display: block;
-      width: 100%;
-      text-align: center;
-      background: #00f2fe;
-      color: #0b1120;
-      padding: 10px;
-      border-radius: 10px;
-      text-decoration: none;
-      font-weight: bold;
-      margin-top: 10px;
-    }
-
-    /* Modal Formular */
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(0,0,0,0.8);
-      z-index: 3000;
-      display: none;
-      justify-content: center;
-      align-items: center;
-      padding: 20px;
-    }
-
-    .modal-overlay.active {
-      display: flex;
-    }
-
-    .modal-card {
-      background: #0f172a;
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 16px;
-      padding: 20px;
-      width: 100%;
-      max-width: 450px;
-      max-height: 90vh;
-      overflow-y: auto;
-    }
-
-    .form-group {
-      margin-bottom: 12px;
-    }
-
-    .form-group label {
-      display: block;
-      font-size: 12px;
-      color: #94a3b8;
-      margin-bottom: 4px;
-      text-transform: uppercase;
-    }
-
-    .form-input {
-      width: 100%;
-      background: rgba(30, 41, 59, 0.8);
-      border: 1px solid rgba(255, 255, 255, 0.15);
-      border-radius: 8px;
-      padding: 10px;
-      color: #fff;
-      font-size: 14px;
-      outline: none;
-    }
-
-    .checkbox-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-top: 6px;
-    }
-
-    .checkbox-item {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 13px;
-    }
-
-    .btn-submit {
-      width: 100%;
-      background: linear-gradient(45deg, #ff007f, #7928ca);
-      border: none;
-      color: white;
-      padding: 12px;
-      border-radius: 8px;
-      font-weight: bold;
-      cursor: pointer;
-      margin-top: 15px;
-      text-transform: uppercase;
-    }
-
-    /* Loading Screen */
-    #loadingScreen {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: #0b1120;
-      z-index: 9999;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      transition: opacity 0.5s ease;
-    }
-
-    #loadingScreen.fade-out {
-      opacity: 0;
-      pointer-events: none;
-    }
-  </style>
+  <!-- Supabase JS Library -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
-  <div id="loadingScreen">
-    <h2 style="color: #00f2fe;">Sprungbereich.de wird geladen...</h2>
+  <!-- Loading Screen -->
+  <div id="loadingScreen" class="loading-screen">
+    <div class="splash-content">
+      <h1 class="brand-title animated-title">Sprungbereich.de</h1>
+      <p class="brand-claim animated-claim">
+        Die intuitive Community Map für alle Turmspringer & Klippenspringer.
+      </p>
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill"></div>
+      </div>
+    </div>
   </div>
 
+  <!-- Karte -->
   <div id="map"></div>
 
-  <!-- Top Controls -->
-  <div class="top-controls">
+  <!-- UI Panel -->
+  <div class="search-panel">
+    <!-- Suche & Radius -->
     <div class="search-row">
-      <input type="text" id="searchInput" class="search-input" placeholder="Ort / PLZ eingeben...">
-      <select id="radiusFilter" class="select-dropdown">
-        <option value="10">10 km</option>
-        <option value="25" selected>25 km</option>
-        <option value="50">50 km</option>
-        <option value="100">100 km</option>
-      </select>
-      <button id="searchBtn" class="btn-search">Suchen</button>
-    </div>
-    
-    <div class="filter-row">
-      <select id="heightFilter" class="select-dropdown">
-        <option value="0">Alle Höhen</option>
-        <option value="3">Ab 3m</option>
-        <option value="5">Ab 5m</option>
-        <option value="7.5">Ab 7.5m</option>
-        <option value="10">Ab 10m</option>
-      </select>
-
-      <select id="typeFilter" class="select-dropdown">
-        <option value="all">Alle Arten</option>
-        <option value="Freibad">Freibad</option>
-        <option value="Hallenbad">Hallenbad</option>
-        <option value="See">See / Klippe</option>
-      </select>
-    </div>
-
-    <div class="toggle-row">
-      <input type="checkbox" id="verifiedOnlyToggle">
-      <label for="verifiedOnlyToggle">Nur verifizierte Spots anzeigen</label>
-    </div>
-  </div>
-
-  <!-- Bottom Bar -->
-  <div class="bottom-bar">
-    <div id="dynamicGraffitiTitle" class="graffiti-title"></div>
-    <button id="openAddModalBtn" class="btn-add">Jetzt Drop Pen!</button>
-  </div>
-
-  <!-- Bottom Sheet -->
-  <div id="bottomSheet" class="bottom-sheet">
-    <div class="sheet-header">
-      <h3 id="poolTitle" style="color: #00f2fe;">-</h3>
-      <button id="closeSheetBtn" class="btn-close">&times;</button>
-    </div>
-    <p id="poolType" style="color: #94a3b8; font-size: 14px;">-</p>
-    <div id="verifiedBadge" class="badge"></div>
-    <div id="poolFacilities" class="facility-chips"></div>
-    <a id="navBtn" class="btn-nav" target="_blank">Navigation starten</a>
-  </div>
-
-  <!-- Add Spot Modal -->
-  <div id="addSpotModal" class="modal-overlay">
-    <div class="modal-card">
-      <div class="sheet-header">
-        <h3>Neuen Spot eintragen</h3>
-        <button id="closeAddModalBtn" class="btn-close">&times;</button>
+      <div class="field-group flex-grow">
+        <span class="field-label">Ort / PLZ</span>
+        <input type="text" id="searchInput" value="10117" placeholder="z. B. 10117 oder Berlin">
+      </div>
+      
+      <div class="field-group">
+        <span class="field-label">Radius</span>
+        <select id="radiusFilter" class="glass-select">
+          <option value="10">10 km</option>
+          <option value="25" selected>25 km</option>
+          <option value="50">50 km</option>
+          <option value="100">100 km</option>
+        </select>
       </div>
 
+      <button id="searchBtn" class="btn-search-glow" title="Suchen">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      </button>
+    </div>
+
+    <!-- Filter Zeile -->
+    <div class="filter-row">
+      <div class="field-group flex-1">
+        <span class="field-label">Mindest-Sprunghöhe</span>
+        <select id="heightFilter" class="glass-select">
+          <option value="0">Alle Höhen</option>
+          <option value="1">Ab 1m Brett</option>
+          <option value="3">Ab 3m Turm</option>
+          <option value="5">Ab 5m Turm</option>
+          <option value="7.5">Ab 7.5m Turm</option>
+          <option value="10">🔥 Ab 10m Profi-Turm</option>
+        </select>
+      </div>
+
+      <div class="field-group flex-1">
+        <span class="field-label">Spot-Kategorie</span>
+        <select id="typeFilter" class="glass-select">
+          <option value="all">Alle Arten</option>
+          <option value="Freibad">Freibad</option>
+          <option value="Hallenbad">Hallenbad</option>
+          <option value="See">See / Klippe</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Farb-Legende -->
+    <div class="legend-row">
+      <div class="legend-item">
+        <span class="dot dot-freibad"></span>
+        <span class="legend-text">Freibad</span>
+      </div>
+      <div class="legend-item">
+        <span class="dot dot-hallenbad"></span>
+        <span class="legend-text">Hallenbad</span>
+      </div>
+      <div class="legend-item">
+        <span class="dot dot-see"></span>
+        <span class="legend-text">See / Klippe</span>
+      </div>
+    </div>
+
+    <!-- Footer Toggle -->
+    <div class="filter-footer">
+      <label class="toggle-container">
+        <input type="checkbox" id="verifiedOnlyToggle">
+        <span class="toggle-custom"></span>
+        <span class="toggle-text">Nur verifizierte Spots</span>
+      </label>
+    </div>
+  </div>
+
+  <!-- ARCADE / DIVE COMMUNITY BANNER (Unten zentriert) -->
+  <div class="arcade-cta-card" id="openAddModalBtn">
+    <div class="arcade-content">
+      <div class="arcade-title" id="dynamicGraffitiTitle">
+        <!-- Dynamische Rainbow-Buchstaben -->
+      </div>
+      <p class="arcade-sub">Trage deinen Spot ein & mach die Map voll!</p>
+    </div>
+    <div class="arcade-btn-wrapper">
+      <span class="arcade-btn-glow">+ JETZT DROP PEN!</span>
+    </div>
+  </div>
+
+  <!-- ADD SPOT MODAL (Popup Formular) -->
+  <div id="addSpotModal" class="modal-overlay">
+    <div class="modal-card arcade-modal-style">
+      <button id="closeAddModalBtn" class="btn-close-sheet" title="Schließen">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+
+      <h2 class="modal-heading">NEUEN SPOT DROPPEN 🪂</h2>
+      <p class="modal-sub">Trage die Infos deiner Sprunganlage ein:</p>
+
       <form id="addSpotForm">
-        <div class="form-group">
+        <div class="modal-field">
           <label>Name des Bades / Spots</label>
-          <input type="text" id="newSpotName" class="form-input" placeholder="z.B. Donaubad Freibad" required>
+          <input type="text" id="newSpotName" placeholder="z. B. Stadionbad Ulm" required>
         </div>
 
-        <div class="form-group">
-          <label>Adresse / Ort / Stadt</label>
-          <input type="text" id="newSpotCity" class="form-input" placeholder="z.B. Stadionstraße 5, Neu-Ulm" required>
+        <div class="modal-field">
+          <label>Ort / Stadt</label>
+          <input type="text" id="newSpotCity" placeholder="z. B. Ulm" required>
         </div>
 
-        <div class="form-group">
+        <div class="modal-field">
           <label>Kategorie</label>
-          <select id="newSpotType" class="form-input">
-            <option value="Freibad">Freibad</option>
-            <option value="Hallenbad">Hallenbad</option>
-            <option value="See">See / Klippe / Natur</option>
+          <select id="newSpotType" class="glass-select modal-select" required>
+            <option value="Freibad">🟡 Freibad</option>
+            <option value="Hallenbad">🟣 Hallenbad</option>
+            <option value="See">🔵 See / Klippe</option>
           </select>
         </div>
 
-        <div class="form-group">
-          <label>Vorhandene Sprunganlagen</label>
+        <!-- Vorhandene Sprunganlagen / Höhen (Mehrfachauswahl) -->
+        <div class="modal-field">
+          <label>Vorhandene Sprungelemente (Mehrfachauswahl)</label>
           <div class="checkbox-grid">
-            <label class="checkbox-item"><input type="checkbox" class="height-cb" value="1" data-label="1m Brett"> 1m Brett</label>
-            <label class="checkbox-item"><input type="checkbox" class="height-cb" value="3" data-label="3m Turm"> 3m Turm</label>
-            <label class="checkbox-item"><input type="checkbox" class="height-cb" value="5" data-label="5m Turm"> 5m Turm</label>
-            <label class="checkbox-item"><input type="checkbox" class="height-cb" value="7.5" data-label="7.5m Turm"> 7.5m Turm</label>
-            <label class="checkbox-item"><input type="checkbox" class="height-cb" value="10" data-label="10m Profi-Turm"> 10m Profi-Turm</label>
-            <label class="checkbox-item"><input type="checkbox" class="height-cb" value="15" data-label="15m+ Klippe"> 15m+ Klippe</label>
+            <label class="checkbox-badge">
+              <input type="checkbox" class="height-cb" value="1" data-label="1m Brett/Block">
+              <span>1m Brett / Block</span>
+            </label>
+
+            <label class="checkbox-badge">
+              <input type="checkbox" class="height-cb" value="2" data-label="2m Brett/Plattform">
+              <span>2m Brett / Plattform</span>
+            </label>
+
+            <label class="checkbox-badge">
+              <input type="checkbox" class="height-cb" value="3" data-label="3m Brett/Turm">
+              <span>3m Brett / Turm</span>
+            </label>
+
+            <label class="checkbox-badge">
+              <input type="checkbox" class="height-cb" value="5" data-label="5m Turm">
+              <span>5m Turm</span>
+            </label>
+
+            <label class="checkbox-badge">
+              <input type="checkbox" class="height-cb" value="7.5" data-label="7.5m Turm">
+              <span>7.5m Turm</span>
+            </label>
+
+            <label class="checkbox-badge">
+              <input type="checkbox" class="height-cb" value="10" data-label="10m Profi-Turm">
+              <span>10m Profi-Turm</span>
+            </label>
+
+            <label class="checkbox-badge">
+              <input type="checkbox" class="height-cb" value="15" data-label="15m+ Klippe/High-Dive">
+              <span>15m+ Klippe / High-Dive</span>
+            </label>
           </div>
         </div>
 
-        <div style="background: rgba(255,255,255,0.05); padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 11px; color: #94a3b8;">
-          Hinweis: Nach dem Eintragen wird dein Spot in der Datenbank gespeichert und ist sofort auf der Karte sichtbar.
-        </div>
+        <!-- Randnotiz für Admin-Freigabe -->
+        <p class="admin-notice">
+          ℹ️ <strong>Hinweis:</strong> Nach dem Eintragen wird dein Spot in der Datenbank gespeichert und nach einer Prüfung durch den Admin freigeschaltet.
+        </p>
 
-        <button type="submit" class="btn-submit">Spot Hinzufügen</button>
+        <button type="submit" class="btn-submit-spot">SPOT HINZUFÜGEN 💦</button>
       </form>
     </div>
   </div>
 
-  <!-- Leaflet & Supabase JS -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="map.js"></script>
+  <!-- Bottom Sheet (Detail-Panel) -->
+  <div id="bottomSheet" class="bottom-sheet">
+    <button id="closeSheetBtn" class="btn-close-sheet" title="Schließen">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+    </button>
+    <div class="sheet-content">
+      <h2 id="poolTitle">Badname</h2>
+      <p id="poolType">Typ & Höhe</p>
+      <div id="poolFacilities" class="facilities-list"></div>
+      <span id="verifiedBadge" class="badge">Status</span>
+      <div class="sheet-actions">
+        <a id="navBtn" href="#" target="_blank" class="btn-nav">Route starten</a>
+      </div>
+    </div>
+  </div>
 
+  <!-- Scripts -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="map.js"></script>
 </body>
 </html>
