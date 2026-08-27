@@ -28,11 +28,16 @@ document.addEventListener("DOMContentLoaded", () => {
   // Karte initialisieren
   map = L.map("map", { zoomControl: false }).setView([51.1657, 10.4515], 6);
 
-  // 100% Kostenloser Dark-Map-Tile-Server ohne API-Key Limit (CARTO Dark Matter)
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-    maxZoom: 19,
-    subdomains: "abcd",
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+  // 100% Kostenloser & stabiler Dark-Map Server von Esri (Kein Key nötig, Deutsche Ortsnamen)
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
+    maxZoom: 16,
+    attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ'
+  }).addTo(map);
+
+  // Beschriftungen / Labels für Städte auf Deutsch darüberlegen
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", {
+    maxZoom: 16,
+    interactive: false
   }).addTo(map);
 
   markersGroup = L.layerGroup().addTo(map);
@@ -79,7 +84,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.addEventListener("popstate", () => {
     const sheet = document.getElementById("bottomSheet");
-    if (sheet.classList.contains("active")) {
+    if (sheet && sheet.classList.contains("active")) {
       closeBottomSheet(false);
     }
     closeAddModal();
