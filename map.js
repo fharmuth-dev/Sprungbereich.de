@@ -28,16 +28,11 @@ document.addEventListener("DOMContentLoaded", () => {
   // Karte initialisieren
   map = L.map("map", { zoomControl: false }).setView([51.1657, 10.4515], 6);
 
-  // KARTEN-PROVIDER: Kostenlose deutsche Dark-Map (OSM-basiert)
-  L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png", {
+  // 100% Kostenloser Dark-Map-Tile-Server ohne API-Key Limit (CARTO Dark Matter)
+  L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
     maxZoom: 19,
-    subdomains: 'abcd'
-  });
-  
-  // Zuverlässiger dunkler OpenStreetMap-Tile-Server ohne API-Key auf Deutsch:
-  L.tileLayer("https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png", {
-    maxZoom: 20,
-    attribution: '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/">OpenMapTiles</a> &copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors'
+    subdomains: "abcd",
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
   }).addTo(map);
 
   markersGroup = L.layerGroup().addTo(map);
@@ -84,7 +79,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   window.addEventListener("popstate", () => {
     const sheet = document.getElementById("bottomSheet");
-    if (sheet && sheet.classList.contains("active")) {
+    if (sheet.classList.contains("active")) {
       closeBottomSheet(false);
     }
     closeAddModal();
@@ -145,7 +140,7 @@ function removeTempMarker() {
   }
 }
 
-// Spots aus Supabase laden (Tabelle 'Spots' großgeschrieben)
+// Spots aus Supabase laden (Tabelle 'Spots')
 async function loadSpotsFromSupabase() {
   try {
     const { data, error } = await supabaseClient
