@@ -1,4 +1,4 @@
-// === DEINE SUPABASE ZUGANGSDATEN ===
+// === SUPABASE ZUGANGSDATEN ===
 const SUPABASE_URL = "https://bmngqythtalsddqtfuib.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_TPwfBJvsktOEDPZmQAcG0w_AnYnaQeW";
 
@@ -14,27 +14,29 @@ let currentSearchCenter = null;
 
 let tempMarker = null;        // Temporärer Marker für die Standort-Bestätigung
 let tempSelectedLatLng = null; // Speichert finale Koordinaten für das Formular
+let isPickingOnMap = false;    // Status: Nutzer wählt gerade auf der Karte aus
 
 let allSpots = [];
 
 document.addEventListener("DOMContentLoaded", () => {
+  // Loading Screen nach Animation ausblenden
   setTimeout(() => {
     const loader = document.getElementById("loadingScreen");
     if (loader) loader.classList.add("fade-out");
-  }, 2000);
+  }, 3500);
 
   renderGraffitiTitle("Deine Location dabei?");
 
   // Karte initialisieren
   map = L.map("map", { zoomControl: false }).setView([51.1657, 10.4515], 6);
 
-  // 100% Kostenloser & stabiler Dark-Map Server von Esri
+  // Esri Dark Map Tiles (Stabil, kostenlos, ohne Key)
   L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
     maxZoom: 16,
     attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ'
   }).addTo(map);
 
-  // Beschriftungen / Labels für Städte auf Deutsch darüberlegen
+  // Deutsche Beschriftungen / Labels
   L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", {
     maxZoom: 16,
     interactive: false
@@ -45,6 +47,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   drawGermanyOutline();
 
+  // Event Listener für Filter
   document.getElementById("heightFilter").addEventListener("change", applyAllFilters);
   document.getElementById("typeFilter").addEventListener("change", applyAllFilters);
   document.getElementById("verifiedOnlyToggle").addEventListener("change", applyAllFilters);
@@ -63,6 +66,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("closeSheetBtn").addEventListener("click", () => closeBottomSheet(true));
   
+  // Modal Öffnen / Schließen Events
   document.getElementById("openAddModalBtn").addEventListener("click", () => {
     removeTempMarker();
     tempSelectedLatLng = null;
@@ -72,13 +76,29 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("closeAddModalBtn").addEventListener("click", closeAddModal);
   document.getElementById("addSpotForm").addEventListener("submit", handleAddSpotSubmit);
 
-  // Klick auf die Karte: Setzt temporären Pin mit Bestätigungs-Popup
+  // Klick-Logik auf der Karte
   map.on("click", (e) => {
     const sheet = document.getElementById("bottomSheet");
     if (sheet && sheet.classList.contains("active")) {
       closeBottomSheet(true);
       return;
     }
+
+    // Falls Nutzer aus dem Modal heraus auf die Karte klickt:
+    if (isPickingOnMap) {
+      tempSelectedLatLng = e.latlng;
+      removeTempMarker();
+      
+      // Temporären Pin setzen
+      tempMarker = L.marker(e.latlng).addTo(map);
+
+      // Modal wieder öffnen
+      isPickingOnMap = false;
+      document.getElementById("addSpotModal").classList.add("active");
+      return;
+    }
+
+    // Standard-Klick auf der Karte mit Bestätigung
     placeTempMarker(e.latlng);
   });
 
@@ -99,7 +119,6 @@ function placeTempMarker(latlng) {
   removeTempMarker();
 
   tempSelectedLatLng = latlng;
-
   tempMarker = L.marker(latlng, { draggable: true }).addTo(map);
 
   const popupContent = document.createElement("div");
@@ -145,7 +164,7 @@ function removeTempMarker() {
   }
 }
 
-// Spots aus Supabase laden (Tabelle 'Spots')
+// Spots aus Supabase laden
 async function loadSpotsFromSupabase() {
   try {
     const { data, error } = await supabaseClient
@@ -327,14 +346,15 @@ function closeAddModal() {
   document.getElementById("addSpotModal").classList.remove("active");
   removeTempMarker();
   tempSelectedLatLng = null;
+  isPickingOnMap = false;
 }
 
-/* Formular-Submit mit Geocoding für eingegebene Adressen */
+/* Formular absenden & Verknüpfung mit genauer Adresse / Koordinaten */
 async function handleAddSpotSubmit(e) {
   e.preventDefault();
 
   const name = document.getElementById("newSpotName").value.trim();
-  const city = document.getElementById("newSpotCity").value.trim();
+  const locationInput = document.getElementById("newSpotCity").value.trim();
   const type = document.getElementById("newSpotType").value;
 
   const checkedBoxes = document.querySelectorAll(".height-cb:checked");
@@ -353,25 +373,26 @@ async function handleAddSpotSubmit(e) {
     if (val > maxHeight) maxHeight = val;
   });
 
-  if (!name || !city) return;
+  if (!name || !locationInput) return;
 
   let lat = null;
   let lng = null;
 
-  // Wenn zuvor auf die Karte geklickt wurde:
+  // 1. Wenn Koordinaten direkt durch Klick auf der Karte gesetzt wurden
   if (tempSelectedLatLng) {
     lat = tempSelectedLatLng.lat;
     lng = tempSelectedLatLng.lng;
   } else {
-    // Wenn kein Map-Klick vorlag: Wandle Adresse/Ort direkt via Geocoding um
+    // 2. Ansonsten: Adresse/Ort über Geocoding exakt bestimmen
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city + ", Germany")}`);
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationInput + ", Germany")}`);
       const results = await res.json();
+      
       if (results && results.length > 0) {
         lat = parseFloat(results[0].lat);
         lng = parseFloat(results[0].lon);
       } else {
-        alert("Die eingegebene Adresse konnte auf der Karte nicht gefunden werden. Bitte klicke stattdessen direkt auf die Karte.");
+        alert("Die eingegebene Adresse/Ort konnte nicht gefunden werden.");
         return;
       }
     } catch (err) {
@@ -381,19 +402,19 @@ async function handleAddSpotSubmit(e) {
     }
   }
 
-  // In Supabase 'Spots' einfügen
+  // In Supabase Tabelle 'Spots' eintragen
   const { data, error } = await supabaseClient
     .from('Spots')
     .insert([
       {
         title: name,
-        description: city,
+        description: locationInput,
         type: type,
         height: maxHeight,
         facilities: selectedLabels,
         latitude: lat,
         longitude: lng,
-        status: 'approved' // Direkt freischalten / anzeigen
+        status: 'approved'
       }
     ])
     .select();
@@ -409,9 +430,9 @@ async function handleAddSpotSubmit(e) {
 
   closeAddModal();
   document.getElementById("addSpotForm").reset();
-  
-  // Karte auf den neu erstellten Marker zentrieren und heranzoomen
-  map.setView([lat, lng], 14);
+
+  // Karte sofort auf den eingetragenen Spot zentrieren
+  map.setView([lat, lng], 15);
 }
 
 function openBottomSheet(spot) {
@@ -434,7 +455,7 @@ function openBottomSheet(spot) {
   }
 
   if (spot.verified) {
-    badge.textContent = "Offiziell Verifiziert";
+    badge.textContent = "Verifiziert";
     badge.className = "badge verified";
   } else {
     badge.textContent = "Community-Eintrag";
