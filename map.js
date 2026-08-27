@@ -21,14 +21,14 @@ document.addEventListener("DOMContentLoaded", () => {
   setTimeout(() => {
     const loader = document.getElementById("loadingScreen");
     if (loader) loader.classList.add("fade-out");
-  }, 3500);
+  }, 2000);
 
   renderGraffitiTitle("Deine Location dabei?");
 
   // Karte initialisieren
   map = L.map("map", { zoomControl: false }).setView([51.1657, 10.4515], 6);
 
-  // 100% Kostenloser & stabiler Dark-Map Server von Esri (Kein Key nötig, Deutsche Ortsnamen)
+  // 100% Kostenloser & stabiler Dark-Map Server von Esri
   L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
     maxZoom: 16,
     attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ'
@@ -329,7 +329,7 @@ function closeAddModal() {
   tempSelectedLatLng = null;
 }
 
-/* Formular-Submit mit Speicherung in 'Spots' */
+/* Formular-Submit mit Geocoding für eingegebene Adressen */
 async function handleAddSpotSubmit(e) {
   e.preventDefault();
 
@@ -355,22 +355,29 @@ async function handleAddSpotSubmit(e) {
 
   if (!name || !city) return;
 
-  let lat = 51.1657;
-  let lng = 10.4515;
+  let lat = null;
+  let lng = null;
 
+  // Wenn zuvor auf die Karte geklickt wurde:
   if (tempSelectedLatLng) {
     lat = tempSelectedLatLng.lat;
     lng = tempSelectedLatLng.lng;
   } else {
+    // Wenn kein Map-Klick vorlag: Wandle Adresse/Ort direkt via Geocoding um
     try {
       const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(city + ", Germany")}`);
       const results = await res.json();
       if (results && results.length > 0) {
         lat = parseFloat(results[0].lat);
         lng = parseFloat(results[0].lon);
+      } else {
+        alert("Die eingegebene Adresse konnte auf der Karte nicht gefunden werden. Bitte klicke stattdessen direkt auf die Karte.");
+        return;
       }
     } catch (err) {
       console.error("Geocoding Fehler:", err);
+      alert("Fehler bei der Adresssuche. Bitte versuche es erneut.");
+      return;
     }
   }
 
@@ -386,7 +393,7 @@ async function handleAddSpotSubmit(e) {
         facilities: selectedLabels,
         latitude: lat,
         longitude: lng,
-        status: 'pending'
+        status: 'approved' // Direkt freischalten / anzeigen
       }
     ])
     .select();
@@ -402,6 +409,8 @@ async function handleAddSpotSubmit(e) {
 
   closeAddModal();
   document.getElementById("addSpotForm").reset();
+  
+  // Karte auf den neu erstellten Marker zentrieren und heranzoomen
   map.setView([lat, lng], 14);
 }
 
@@ -425,10 +434,10 @@ function openBottomSheet(spot) {
   }
 
   if (spot.verified) {
-    badge.textContent = "✅ Offiziell Verifiziert";
+    badge.textContent = "Offiziell Verifiziert";
     badge.className = "badge verified";
   } else {
-    badge.textContent = "🟡 Community-Eintrag (Ungeprüft)";
+    badge.textContent = "Community-Eintrag";
     badge.className = "badge community";
   }
 
