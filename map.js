@@ -12,8 +12,9 @@ let radiusCircleLayer = null;
 let centerPinMarker = null;
 let currentSearchCenter = null;
 
-let tempMarker = null;        // Temporärer Marker für die Standort-Bestätigung
+let tempMarker = null;          // Temporärer Marker für die Standort-Bestätigung
 let tempSelectedLatLng = null; // Speichert finale Koordinaten für das Formular
+let pendingPickedLatLng = null; // Speichert Zwischen-Koordinaten vor der Ja/Nein Bestätigung
 let isPickingOnMap = false;    // Status: Nutzer wählt gerade auf der Karte aus
 
 let allSpots = [];
@@ -70,11 +71,22 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("openAddModalBtn").addEventListener("click", () => {
     removeTempMarker();
     tempSelectedLatLng = null;
+    const statusText = document.getElementById("locationStatusText");
+    if (statusText) statusText.textContent = "";
     openAddModal();
   });
   
   document.getElementById("closeAddModalBtn").addEventListener("click", closeAddModal);
   document.getElementById("addSpotForm").addEventListener("submit", handleAddSpotSubmit);
+
+  // Button "Auf Karte markieren" im Modal
+  const pickBtn = document.getElementById("pickOnMapBtn");
+  if (pickBtn) {
+    pickBtn.addEventListener("click", () => {
+      isPickingOnMap = true;
+      document.getElementById("addSpotModal").classList.remove("active");
+    });
+  }
 
   // Klick-Logik auf der Karte
   map.on("click", (e) => {
@@ -84,21 +96,58 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // Falls Nutzer aus dem Modal heraus auf die Karte klickt:
+    // 1. Wenn Nutzer aus dem Modal heraus "Auf Karte markieren" gewählt hat
     if (isPickingOnMap) {
-      tempSelectedLatLng = e.latlng;
+      pendingPickedLatLng = e.latlng;
       removeTempMarker();
       
-      // Temporären Pin setzen
       tempMarker = L.marker(e.latlng).addTo(map);
 
-      // Modal wieder öffnen
-      isPickingOnMap = false;
-      document.getElementById("addSpotModal").classList.add("active");
+      const popupContent = document.createElement("div");
+      popupContent.style.textAlign = "center";
+      popupContent.style.padding = "4px";
+      popupContent.innerHTML = `
+        <p style="margin:0 0 8px 0; font-size:13px; font-weight:bold; color:#0b1120;">Ist das der richtige Ort?</p>
+        <div style="display:flex; gap:6px; justify-content:center;">
+          <button id="confirmPickBtn" style="background:#10b981; color:#fff; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-weight:bold; font-size:12px;">Ja</button>
+          <button id="cancelPickBtn" style="background:#ef4444; color:#fff; border:none; padding:6px 12px; border-radius:6px; cursor:pointer; font-size:12px;">Abbrechen</button>
+        </div>
+      `;
+
+      tempMarker.bindPopup(popupContent, { closeButton: false }).openPopup();
+
+      setTimeout(() => {
+        const confirmBtn = document.getElementById("confirmPickBtn");
+        const cancelBtn = document.getElementById("cancelPickBtn");
+
+        if (confirmBtn) {
+          confirmBtn.addEventListener("click", () => {
+            tempSelectedLatLng = pendingPickedLatLng;
+            isPickingOnMap = false;
+            tempMarker.closePopup();
+
+            // Modal wieder öffnen
+            document.getElementById("addSpotModal").classList.add("active");
+
+            const statusText = document.getElementById("locationStatusText");
+            if (statusText) {
+              statusText.textContent = "✓ Standort auf Karte gewählt!";
+            }
+          });
+        }
+
+        if (cancelBtn) {
+          cancelBtn.addEventListener("click", () => {
+            removeTempMarker();
+            pendingPickedLatLng = null;
+          });
+        }
+      }, 50);
+
       return;
     }
 
-    // Standard-Klick auf der Karte mit Bestätigung
+    // 2. Standard-Klick auf der Karte mit Bestätigung (außerhalb des Modals)
     placeTempMarker(e.latlng);
   });
 
@@ -146,6 +195,8 @@ function placeTempMarker(latlng) {
     if (confirmBtn) {
       confirmBtn.addEventListener("click", () => {
         openAddModal();
+        const statusText = document.getElementById("locationStatusText");
+        if (statusText) statusText.textContent = "✓ Standort auf Karte gewählt!";
       });
     }
 
@@ -281,6 +332,7 @@ function getSpotColor(type) {
   switch (type) {
     case "Freibad": return "#ffd166";
     case "Hallenbad": return "#a855f7";
+    case "Frei- und Hallenbad": return "#ec4899";
     case "See": default: return "#00f2fe";
   }
 }
@@ -346,6 +398,7 @@ function closeAddModal() {
   document.getElementById("addSpotModal").classList.remove("active");
   removeTempMarker();
   tempSelectedLatLng = null;
+  pendingPickedLatLng = null;
   isPickingOnMap = false;
 }
 
@@ -354,7 +407,9 @@ async function handleAddSpotSubmit(e) {
   e.preventDefault();
 
   const name = document.getElementById("newSpotName").value.trim();
-  const locationInput = document.getElementById("newSpotCity").value.trim();
+  const city = document.getElementById("newSpotCity").value.trim();
+  const streetEl = document.getElementById("newSpotStreet");
+  const street = streetEl ? streetEl.value.trim() : "";
   const type = document.getElementById("newSpotType").value;
 
   const checkedBoxes = document.querySelectorAll(".height-cb:checked");
@@ -373,7 +428,7 @@ async function handleAddSpotSubmit(e) {
     if (val > maxHeight) maxHeight = val;
   });
 
-  if (!name || !locationInput) return;
+  if (!name || !city) return;
 
   let lat = null;
   let lng = null;
@@ -383,16 +438,18 @@ async function handleAddSpotSubmit(e) {
     lat = tempSelectedLatLng.lat;
     lng = tempSelectedLatLng.lng;
   } else {
-    // 2. Ansonsten: Adresse/Ort über Geocoding exakt bestimmen
+    // 2. Ansonsten: Adresse/Ort über Geocoding exakt bestimmen (Straße + Ort oder nur Ort)
+    const fullAddress = street ? `${street}, ${city}, Germany` : `${city}, Germany`;
+
     try {
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(locationInput + ", Germany")}`);
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`);
       const results = await res.json();
       
       if (results && results.length > 0) {
         lat = parseFloat(results[0].lat);
         lng = parseFloat(results[0].lon);
       } else {
-        alert("Die eingegebene Adresse/Ort konnte nicht gefunden werden.");
+        alert("Die eingegebene Adresse/Ort konnte nicht gefunden werden. Bitte nutze 'Auf Karte markieren'.");
         return;
       }
     } catch (err) {
@@ -402,13 +459,15 @@ async function handleAddSpotSubmit(e) {
     }
   }
 
+  const addressText = street ? `${street}, ${city}` : city;
+
   // In Supabase Tabelle 'Spots' eintragen
   const { data, error } = await supabaseClient
     .from('Spots')
     .insert([
       {
         title: name,
-        description: locationInput,
+        description: addressText,
         type: type,
         height: maxHeight,
         facilities: selectedLabels,
@@ -430,6 +489,8 @@ async function handleAddSpotSubmit(e) {
 
   closeAddModal();
   document.getElementById("addSpotForm").reset();
+  const statusText = document.getElementById("locationStatusText");
+  if (statusText) statusText.textContent = "";
 
   // Karte sofort auf den eingetragenen Spot zentrieren
   map.setView([lat, lng], 15);
