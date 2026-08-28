@@ -351,31 +351,83 @@ function resetImageSelection() {
   if (input) input.value = "";
 }
 
-// Bilder in Supabase Storage hochladen
+// Hilfsfunktion: Bild im Browser vor dem Upload komprimieren
+function compressImage(file, maxWidth = 1200, quality = 0.7) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob(
+          (blob) => {
+            if (blob) {
+              const compressedFile = new File([blob], file.name.replace(/\.[^/.]+$/, "") + ".webp", {
+                type: "image/webp",
+                lastModified: Date.now(),
+              });
+              resolve(compressedFile);
+            } else {
+              reject(new Error("Komprimierung fehlgeschlagen"));
+            }
+          },
+          "image/webp",
+          quality
+        );
+      };
+      img.onerror = (err) => reject(err);
+    };
+    reader.onerror = (err) => reject(err);
+  });
+}
+
+// Bilder in Supabase Storage hochladen (mit automatischer Komprimierung)
 async function uploadSpotImages() {
   const uploadedUrls = [];
 
   for (const file of selectedImageFiles) {
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-    const filePath = `${fileName}`;
+    try {
+      // Bild vor Upload auf max. 1200px Breite & WebP-Format verkleinern
+      const compressedFile = await compressImage(file);
+      
+      const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.webp`;
+      const filePath = `${fileName}`;
 
-    const { data, error } = await supabaseClient.storage
-      .from('spot-images')
-      .upload(filePath, file);
+      const { data, error } = await supabaseClient.storage
+        .from('spot-images')
+        .upload(filePath, compressedFile);
 
-    if (error) {
-      console.error("Upload-Fehler bei Bild:", error);
-      continue;
-    }
+      if (error) {
+        console.error("Upload-Fehler bei Bild:", error);
+        continue;
+      }
 
-    // Public URL des hochgeladenen Bildes holen
-    const { data: publicUrlData } = supabaseClient.storage
-      .from('spot-images')
-      .getPublicUrl(filePath);
+      // Public URL des hochgeladenen Bildes holen
+      const { data: publicUrlData } = supabaseClient.storage
+        .from('spot-images')
+        .getPublicUrl(filePath);
 
-    if (publicUrlData && publicUrlData.publicUrl) {
-      uploadedUrls.push(publicUrlData.publicUrl);
+      if (publicUrlData && publicUrlData.publicUrl) {
+        uploadedUrls.push(publicUrlData.publicUrl);
+      }
+    } catch (err) {
+      console.error("Fehler beim Komprimieren des Bildes:", err);
     }
   }
 
@@ -641,7 +693,7 @@ async function handleAddSpotSubmit(e) {
     imageUrls = await uploadSpotImages();
   }
 
-  // In Supabase Tabelle 'Spots' eintragen
+  // In Supabase Tabelle 'Spots' eintragen (mit Status 'pending')
   const { error } = await supabaseClient
     .from('Spots')
     .insert([
@@ -654,7 +706,7 @@ async function handleAddSpotSubmit(e) {
         images: imageUrls,
         latitude: lat,
         longitude: lng,
-        status: 'approved'
+        status: 'pending'
       }
     ]);
 
