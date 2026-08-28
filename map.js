@@ -16,6 +16,7 @@ let tempMarker = null;          // Temporärer Marker für die Standort-Bestäti
 let tempSelectedLatLng = null; // Speichert finale Koordinaten für das Formular
 let pendingPickedLatLng = null; // Speichert Zwischen-Koordinaten vor der Ja/Nein Bestätigung
 let isPickingOnMap = false;    // Status: Nutzer wählt gerade auf der Karte aus
+let selectedImageFiles = [];   // Speichert die bis zu 3 ausgewählten Bild-Dateien
 
 let allSpots = [];
 
@@ -71,6 +72,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("openAddModalBtn").addEventListener("click", () => {
     removeTempMarker();
     tempSelectedLatLng = null;
+    resetImageSelection();
     const statusText = document.getElementById("locationStatusText");
     if (statusText) statusText.textContent = "";
     openAddModal();
@@ -78,6 +80,12 @@ document.addEventListener("DOMContentLoaded", () => {
   
   document.getElementById("closeAddModalBtn").addEventListener("click", closeAddModal);
   document.getElementById("addSpotForm").addEventListener("submit", handleAddSpotSubmit);
+
+  // Event für Bild-Upload Auswahl (Max. 3 Bilder)
+  const imageInput = document.getElementById("spotImages");
+  if (imageInput) {
+    imageInput.addEventListener("change", handleImageSelect);
+  }
 
   // Button "Auf Karte markieren" im Modal
   const pickBtn = document.getElementById("pickOnMapBtn");
@@ -121,17 +129,20 @@ document.addEventListener("DOMContentLoaded", () => {
         const cancelBtn = document.getElementById("cancelPickBtn");
 
         if (confirmBtn) {
-          confirmBtn.addEventListener("click", () => {
+          confirmBtn.addEventListener("click", async () => {
             tempSelectedLatLng = pendingPickedLatLng;
             isPickingOnMap = false;
             tempMarker.closePopup();
+
+            // Adresse via Reverse Geocoding abfragen
+            await fetchAddressFromLatLng(tempSelectedLatLng.lat, tempSelectedLatLng.lng);
 
             // Modal wieder öffnen
             document.getElementById("addSpotModal").classList.add("active");
 
             const statusText = document.getElementById("locationStatusText");
             if (statusText) {
-              statusText.textContent = "✓ Standort auf Karte gewählt!";
+              statusText.textContent = "✓ Standort auf Karte gewählt & Adresse ermittelt!";
             }
           });
         }
@@ -163,6 +174,37 @@ document.addEventListener("DOMContentLoaded", () => {
   loadSpotsFromSupabase();
 });
 
+// Reverse Geocoding: Adresse aus Lat/Lng über Nominatim laden
+async function fetchAddressFromLatLng(lat, lng) {
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
+    const data = await res.json();
+
+    if (data && data.address) {
+      const addr = data.address;
+      
+      // Stadt / Ort ermitteln
+      const city = addr.city || addr.town || addr.village || addr.municipality || addr.county || "";
+      // Straße & Hausnummer ermitteln
+      const road = addr.road || addr.pedestrian || addr.suburb || "";
+      const houseNumber = addr.house_number || "";
+      const streetFull = road ? (houseNumber ? `${road} ${houseNumber}` : road) : "";
+
+      if (city) {
+        const cityInput = document.getElementById("newSpotCity");
+        if (cityInput) cityInput.value = city;
+      }
+
+      if (streetFull) {
+        const streetInput = document.getElementById("newSpotStreet");
+        if (streetInput) streetInput.value = streetFull;
+      }
+    }
+  } catch (err) {
+    console.warn("Reverse Geocoding Hinweis:", err);
+  }
+}
+
 // Temporären Pin auf der Karte setzen
 function placeTempMarker(latlng) {
   removeTempMarker();
@@ -193,10 +235,13 @@ function placeTempMarker(latlng) {
     const cancelBtn = document.getElementById("cancelSpotBtn");
 
     if (confirmBtn) {
-      confirmBtn.addEventListener("click", () => {
+      confirmBtn.addEventListener("click", async () => {
+        // Adresse via Reverse Geocoding vorbefüllen
+        await fetchAddressFromLatLng(tempSelectedLatLng.lat, tempSelectedLatLng.lng);
+        
         openAddModal();
         const statusText = document.getElementById("locationStatusText");
-        if (statusText) statusText.textContent = "✓ Standort auf Karte gewählt!";
+        if (statusText) statusText.textContent = "✓ Standort auf Karte gewählt & Adresse ermittelt!";
       });
     }
 
@@ -213,6 +258,88 @@ function removeTempMarker() {
     map.removeLayer(tempMarker);
     tempMarker = null;
   }
+}
+
+// Handler für die Bildauswahl (Maximal 3 Bilder)
+function handleImageSelect(e) {
+  const files = Array.from(e.target.files);
+
+  if (files.length > 3) {
+    alert("Du kannst maximal 3 Bilder hochladen!");
+    e.target.value = "";
+    resetImageSelection();
+    return;
+  }
+
+  selectedImageFiles = files;
+  renderImagePreviews();
+}
+
+function renderImagePreviews() {
+  const container = document.getElementById("imagePreviewContainer");
+  if (!container) return;
+  container.innerHTML = "";
+
+  selectedImageFiles.forEach((file, idx) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const imgWrap = document.createElement("div");
+      imgWrap.style.position = "relative";
+      imgWrap.style.width = "60px";
+      imgWrap.style.height = "60px";
+
+      const img = document.createElement("img");
+      img.src = e.target.result;
+      img.style.width = "100%";
+      img.style.height = "100%";
+      img.style.objectFit = "cover";
+      img.style.borderRadius = "6px";
+      img.style.border = "1px solid #00f2fe";
+
+      imgWrap.appendChild(img);
+      container.appendChild(imgWrap);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function resetImageSelection() {
+  selectedImageFiles = [];
+  const container = document.getElementById("imagePreviewContainer");
+  if (container) container.innerHTML = "";
+  const input = document.getElementById("spotImages");
+  if (input) input.value = "";
+}
+
+// Bilder in Supabase Storage hochladen
+async function uploadSpotImages() {
+  const uploadedUrls = [];
+
+  for (const file of selectedImageFiles) {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    const { data, error } = await supabaseClient.storage
+      .from('spot-images')
+      .upload(filePath, file);
+
+    if (error) {
+      console.error("Upload-Fehler bei Bild:", error);
+      continue;
+    }
+
+    // Public URL des hochgeladenen Bildes holen
+    const { data: publicUrlData } = supabaseClient.storage
+      .from('spot-images')
+      .getPublicUrl(filePath);
+
+    if (publicUrlData && publicUrlData.publicUrl) {
+      uploadedUrls.push(publicUrlData.publicUrl);
+    }
+  }
+
+  return uploadedUrls;
 }
 
 // Spots aus Supabase laden
@@ -234,6 +361,7 @@ async function loadSpotsFromSupabase() {
       type: spot.type,
       height: spot.height,
       facilities: spot.facilities || [],
+      images: spot.images || [],
       verified: spot.status === 'approved',
       status: spot.status,
       lat: spot.latitude,
@@ -400,9 +528,10 @@ function closeAddModal() {
   tempSelectedLatLng = null;
   pendingPickedLatLng = null;
   isPickingOnMap = false;
+  resetImageSelection();
 }
 
-/* Formular absenden & Verknüpfung mit genauer Adresse / Koordinaten */
+/* Formular absenden & Verknüpfung mit genauer Adresse / Koordinaten / Upload */
 async function handleAddSpotSubmit(e) {
   e.preventDefault();
 
@@ -461,6 +590,12 @@ async function handleAddSpotSubmit(e) {
 
   const addressText = street ? `${street}, ${city}` : city;
 
+  // Bilder hochladen, falls welche ausgewählt wurden
+  let imageUrls = [];
+  if (selectedImageFiles.length > 0) {
+    imageUrls = await uploadSpotImages();
+  }
+
   // In Supabase Tabelle 'Spots' eintragen
   const { data, error } = await supabaseClient
     .from('Spots')
@@ -471,6 +606,7 @@ async function handleAddSpotSubmit(e) {
         type: type,
         height: maxHeight,
         facilities: selectedLabels,
+        images: imageUrls,
         latitude: lat,
         longitude: lng,
         status: 'approved'
@@ -489,6 +625,7 @@ async function handleAddSpotSubmit(e) {
 
   closeAddModal();
   document.getElementById("addSpotForm").reset();
+  resetImageSelection();
   const statusText = document.getElementById("locationStatusText");
   if (statusText) statusText.textContent = "";
 
@@ -501,6 +638,7 @@ function openBottomSheet(spot) {
   const badge = document.getElementById("verifiedBadge");
   const navBtn = document.getElementById("navBtn");
   const facilitiesContainer = document.getElementById("poolFacilities");
+  const galleryContainer = document.getElementById("poolGallery");
 
   document.getElementById("poolTitle").textContent = spot.name;
   document.getElementById("poolType").textContent = `${spot.type} • Max. ${spot.height}m Turm`;
@@ -513,6 +651,28 @@ function openBottomSheet(spot) {
       chip.textContent = label;
       facilitiesContainer.appendChild(chip);
     });
+  }
+
+  // Galerie-Bilder rendern
+  if (galleryContainer) {
+    galleryContainer.innerHTML = "";
+    if (spot.images && spot.images.length > 0) {
+      galleryContainer.style.display = "flex";
+      spot.images.forEach(url => {
+        const img = document.createElement("img");
+        img.src = url;
+        img.style.width = "90px";
+        img.style.height = "90px";
+        img.style.objectFit = "cover";
+        img.style.borderRadius = "8px";
+        img.style.border = "1px solid rgba(255,255,255,0.2)";
+        img.style.cursor = "pointer";
+        img.onclick = () => window.open(url, '_blank');
+        galleryContainer.appendChild(img);
+      });
+    } else {
+      galleryContainer.style.display = "none";
+    }
   }
 
   if (spot.verified) {
