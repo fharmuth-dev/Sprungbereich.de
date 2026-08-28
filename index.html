@@ -131,7 +131,6 @@
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
 
-      <!-- Fallschirm-Emoji entfernt -->
       <h2 class="modal-heading">NEUEN SPOT DROPPEN</h2>
       <p class="modal-sub">Trage die Infos deiner Sprunganlage ein:</p>
 
@@ -146,13 +145,11 @@
           <input type="text" id="newSpotCity" placeholder="z. B. Ulm" required>
         </div>
 
-        <!-- NEU: Optionale Straßen-/Adressangabe -->
         <div class="modal-field">
           <label>Straße & Hausnummer (Optional)</label>
           <input type="text" id="newSpotStreet" placeholder="z. B. Stadionstraße 5">
         </div>
 
-        <!-- NEU: Option Standort direkt auf Karte picken -->
         <div class="modal-field">
           <label>Genaue Adresse bekannt?</label>
           <button type="button" id="pickOnMapBtn" style="width:100%; padding: 10px; background: rgba(0, 242, 254, 0.15); border: 1px solid #00f2fe; color: #00f2fe; border-radius: 8px; font-weight: bold; cursor: pointer;">
@@ -212,12 +209,18 @@
           </div>
         </div>
 
+        <!-- NEU: Fotos hochladen (Maximal 3 Bilder) -->
+        <div class="modal-field">
+          <label>Fotos hinzufügen (Max. 3 Bilder)</label>
+          <input type="file" id="spotImages" accept="image/*" multiple style="width: 100%; padding: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: #fff;">
+          <div id="imagePreviewContainer" style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;"></div>
+        </div>
+
         <!-- Randnotiz für Admin-Freigabe -->
         <p class="admin-notice">
           ℹ️ <strong>Hinweis:</strong> Nach dem Eintragen wird dein Spot in der Datenbank gespeichert und nach einer Prüfung durch den Admin freigeschaltet.
         </p>
 
-        <!-- Wassertropfen-Emoji entfernt -->
         <button type="submit" class="btn-submit-spot">SPOT HINZUFÜGEN</button>
       </form>
     </div>
@@ -231,6 +234,10 @@
     <div class="sheet-content">
       <h2 id="poolTitle">Badname</h2>
       <p id="poolType">Typ & Höhe</p>
+
+      <!-- NEU: Bildergalerie im Bottom Sheet -->
+      <div id="poolGallery" class="pool-gallery" style="display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto;"></div>
+
       <div id="poolFacilities" class="facilities-list"></div>
       <span id="verifiedBadge" class="badge">Status</span>
       <div class="sheet-actions">
