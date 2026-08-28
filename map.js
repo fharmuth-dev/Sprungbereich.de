@@ -62,6 +62,13 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.getElementById("searchBtn").addEventListener("click", executeSearch);
+  
+  // Event Listener für GPS / Standort-Button
+  const locateBtn = document.getElementById("locateBtn");
+  if (locateBtn) {
+    locateBtn.addEventListener("click", getUserLocation);
+  }
+
   document.getElementById("searchInput").addEventListener("keydown", (e) => {
     if (e.key === "Enter") executeSearch();
   });
@@ -173,6 +180,39 @@ document.addEventListener("DOMContentLoaded", () => {
   // Spots aus Supabase laden
   loadSpotsFromSupabase();
 });
+
+// GPS / Standort des Nutzers ermitteln
+function getUserLocation() {
+  const locateBtn = document.getElementById("locateBtn");
+
+  if (!navigator.geolocation) {
+    alert("Geolocation wird von deinem Browser nicht unterstützt.");
+    return;
+  }
+
+  if (locateBtn) locateBtn.style.opacity = "0.5";
+
+  navigator.geolocation.getCurrentPosition(
+    (position) => {
+      if (locateBtn) locateBtn.style.opacity = "1";
+      const { latitude, longitude } = position.coords;
+      
+      currentSearchCenter = { lat: latitude, lng: longitude };
+      
+      // Suchfeld aktualisieren & Umkreis mit Pin setzen
+      const searchInput = document.getElementById("searchInput");
+      if (searchInput) searchInput.value = "Mein Standort";
+      
+      updateRadiusAndPin(latitude, longitude);
+      applyAllFilters();
+    },
+    (error) => {
+      if (locateBtn) locateBtn.style.opacity = "1";
+      alert("Standort konnte nicht ermittelt werden. Bitte Berechtigung im Browser prüfen.");
+    },
+    { enableHighAccuracy: true }
+  );
+}
 
 // Reverse Geocoding: Adresse aus Lat/Lng über Nominatim laden
 async function fetchAddressFromLatLng(lat, lng) {
