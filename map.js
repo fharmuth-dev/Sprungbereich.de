@@ -17,6 +17,7 @@ let tempSelectedLatLng = null; // Speichert finale Koordinaten für das Formular
 let pendingPickedLatLng = null; // Speichert Zwischen-Koordinaten vor der Ja/Nein Bestätigung
 let isPickingOnMap = false;    // Status: Nutzer wählt gerade auf der Karte aus
 let selectedImageFiles = [];   // Speichert die bis zu 3 ausgewählten Bild-Dateien
+let activeSpotForReport = null; // Merkt sich den aktuell geöffneten Spot für das Report-Modal
 
 let allSpots = [];
 
@@ -75,7 +76,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("closeSheetBtn").addEventListener("click", () => closeBottomSheet(true));
   
-  // Modal Öffnen / Schließen Events
+  // Modal Öffnen / Schließen Events (Add Spot)
   document.getElementById("openAddModalBtn").addEventListener("click", () => {
     removeTempMarker();
     tempSelectedLatLng = null;
@@ -102,6 +103,44 @@ document.addEventListener("DOMContentLoaded", () => {
       document.getElementById("addSpotModal").classList.remove("active");
     });
   }
+
+  // === RECHTLICHES & REPORT MODAL EVENTS ===
+  const impressumBtn = document.getElementById("openImpressumBtn");
+  if (impressumBtn) {
+    impressumBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      document.getElementById("impressumModal").classList.add("active");
+    });
+  }
+  const closeImpressumBtn = document.getElementById("closeImpressumBtn");
+  if (closeImpressumBtn) {
+    closeImpressumBtn.addEventListener("click", () => {
+      document.getElementById("impressumModal").classList.remove("active");
+    });
+  }
+
+  const privacyBtn = document.getElementById("openPrivacyBtn");
+  if (privacyBtn) {
+    privacyBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      document.getElementById("privacyModal").classList.add("active");
+    });
+  }
+  const closePrivacyBtn = document.getElementById("closePrivacyBtn");
+  if (closePrivacyBtn) {
+    closePrivacyBtn.addEventListener("click", () => {
+      document.getElementById("privacyModal").classList.remove("active");
+    });
+  }
+
+  const reportBtn = document.getElementById("openReportBtn");
+  if (reportBtn) reportBtn.addEventListener("click", openReportModal);
+
+  const closeReportBtn = document.getElementById("closeReportModalBtn");
+  if (closeReportBtn) closeReportBtn.addEventListener("click", closeReportModal);
+
+  const reportForm = document.getElementById("reportSpotForm");
+  if (reportForm) reportForm.addEventListener("submit", handleReportSubmit);
 
   // Klick-Logik auf der Karte
   map.on("click", (e) => {
@@ -175,6 +214,7 @@ document.addEventListener("DOMContentLoaded", () => {
       closeBottomSheet(false);
     }
     closeAddModal();
+    closeReportModal();
   });
 
   // Spots aus Supabase laden
@@ -628,9 +668,12 @@ function closeAddModal() {
   resetImageSelection();
 }
 
-/* Formular absenden & Verknüpfung mit genauer Adresse / Koordinaten / Upload */
+/* Formular absenden mit Lade-Zustand für den Speicher-Button */
 async function handleAddSpotSubmit(e) {
   e.preventDefault();
+
+  const submitBtn = e.target.querySelector('button[type="submit"]') || document.getElementById("submitSpotBtn");
+  const originalBtnText = submitBtn ? submitBtn.textContent : "";
 
   const name = document.getElementById("newSpotName").value.trim();
   const city = document.getElementById("newSpotCity").value.trim();
@@ -656,18 +699,24 @@ async function handleAddSpotSubmit(e) {
 
   if (!name || !city) return;
 
-  let lat = null;
-  let lng = null;
+  // Button-Status auf Laden setzen
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = "WIRD GESPEICHERT...";
+  }
 
-  // 1. Wenn Koordinaten direkt durch Klick auf der Karte gesetzt wurden
-  if (tempSelectedLatLng) {
-    lat = tempSelectedLatLng.lat;
-    lng = tempSelectedLatLng.lng;
-  } else {
-    // 2. Ansonsten: Adresse/Ort über Geocoding exakt bestimmen
-    const fullAddress = street ? `${street}, ${city}, Germany` : `${city}, Germany`;
+  try {
+    let lat = null;
+    let lng = null;
 
-    try {
+    // 1. Wenn Koordinaten direkt durch Klick auf der Karte gesetzt wurden
+    if (tempSelectedLatLng) {
+      lat = tempSelectedLatLng.lat;
+      lng = tempSelectedLatLng.lng;
+    } else {
+      // 2. Ansonsten: Adresse/Ort über Geocoding exakt bestimmen
+      const fullAddress = street ? `${street}, ${city}, Germany` : `${city}, Germany`;
+
       const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`);
       const results = await res.json();
       
@@ -676,60 +725,141 @@ async function handleAddSpotSubmit(e) {
         lng = parseFloat(results[0].lon);
       } else {
         alert("Die eingegebene Adresse/Ort konnte nicht gefunden werden. Bitte nutze 'Auf Karte markieren'.");
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalBtnText;
+        }
         return;
       }
-    } catch (err) {
-      console.error("Geocoding Fehler:", err);
-      alert("Fehler bei der Adresssuche. Bitte versuche es erneut.");
+    }
+
+    const addressText = street ? `${street}, ${city}` : city;
+
+    // Bilder hochladen, falls welche ausgewählt wurden
+    let imageUrls = [];
+    if (selectedImageFiles.length > 0) {
+      imageUrls = await uploadSpotImages();
+    }
+
+    // In Supabase Tabelle 'Spots' eintragen (mit Status 'pending')
+    const { error } = await supabaseClient
+      .from('Spots')
+      .insert([
+        {
+          title: name,
+          description: addressText,
+          type: type,
+          height: maxHeight,
+          facilities: selectedLabels,
+          images: imageUrls,
+          latitude: lat,
+          longitude: lng,
+          status: 'pending'
+        }
+      ]);
+
+    if (error) {
+      console.error("Fehler beim Speichern in Supabase:", error);
+      alert("Fehler beim Speichern: " + error.message);
       return;
     }
+
+    removeTempMarker();
+    await loadSpotsFromSupabase();
+
+    closeAddModal();
+    document.getElementById("addSpotForm").reset();
+    resetImageSelection();
+    const statusText = document.getElementById("locationStatusText");
+    if (statusText) statusText.textContent = "";
+
+    // Karte sofort auf den eingetragenen Spot zentrieren
+    map.setView([lat, lng], 15);
+    alert("Vielen Dank! Dein Spot wurde eingereicht und wird in Kürze geprüft.");
+
+  } catch (err) {
+    console.error("Fehler beim Absenden des Spots:", err);
+    alert("Ein unerwarteter Fehler ist aufgetreten.");
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalBtnText;
+    }
   }
+}
 
-  const addressText = street ? `${street}, ${city}` : city;
+// === REPORT / KORREKTUR MELDEN FUNKTIONEN ===
+function openReportModal() {
+  if (!activeSpotForReport) return;
+  
+  const spotIdInput = document.getElementById("reportSpotId");
+  const subTitle = document.getElementById("reportSpotTitleSub");
 
-  // Bilder hochladen, falls welche ausgewählt wurden
-  let imageUrls = [];
-  if (selectedImageFiles.length > 0) {
-    imageUrls = await uploadSpotImages();
-  }
+  if (spotIdInput) spotIdInput.value = activeSpotForReport.id;
+  if (subTitle) subTitle.textContent = `Für: ${activeSpotForReport.name}`;
 
-  // In Supabase Tabelle 'Spots' eintragen (mit Status 'pending')
-  const { error } = await supabaseClient
-    .from('Spots')
-    .insert([
-      {
-        title: name,
-        description: addressText,
-        type: type,
-        height: maxHeight,
-        facilities: selectedLabels,
-        images: imageUrls,
-        latitude: lat,
-        longitude: lng,
-        status: 'pending'
-      }
-    ]);
+  document.getElementById("reportModal").classList.add("active");
+}
 
-  if (error) {
-    console.error("Fehler beim Speichern in Supabase:", error);
-    alert("Fehler beim Speichern: " + error.message);
+function closeReportModal() {
+  const reportModal = document.getElementById("reportModal");
+  if (reportModal) reportModal.classList.remove("active");
+  const reportForm = document.getElementById("reportSpotForm");
+  if (reportForm) reportForm.reset();
+}
+
+async function handleReportSubmit(e) {
+  e.preventDefault();
+
+  const submitBtn = e.target.querySelector('button[type="submit"]') || document.getElementById("submitReportBtn");
+  const originalText = submitBtn ? submitBtn.textContent : "";
+
+  const spotId = document.getElementById("reportSpotId")?.value;
+  const reason = document.getElementById("reportReason")?.value;
+  const description = document.getElementById("reportDescription")?.value.trim();
+
+  if (!description) {
+    alert("Bitte gib eine Beschreibung der Änderung an.");
     return;
   }
 
-  removeTempMarker();
-  await loadSpotsFromSupabase();
+  if (submitBtn) {
+    submitBtn.disabled = true;
+    submitBtn.textContent = "WIRD GESENDET...";
+  }
 
-  closeAddModal();
-  document.getElementById("addSpotForm").reset();
-  resetImageSelection();
-  const statusText = document.getElementById("locationStatusText");
-  if (statusText) statusText.textContent = "";
+  try {
+    const { error } = await supabaseClient
+      .from('spot_reports')
+      .insert([
+        {
+          spot_id: spotId,
+          reason: reason,
+          description: description,
+          status: 'pending'
+        }
+      ]);
 
-  // Karte sofort auf den eingetragenen Spot zentrieren
-  map.setView([lat, lng], 15);
+    if (error) {
+      alert("Fehler beim Senden der Korrektur: " + error.message);
+    } else {
+      alert("Danke! Deine Meldung wurde erfolgreich übermittelt.");
+      closeReportModal();
+    }
+  } catch (err) {
+    console.error("Fehler beim Absenden des Reports:", err);
+    alert("Ein Fehler ist aufgetreten.");
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalText;
+    }
+  }
 }
 
 function openBottomSheet(spot) {
+  activeSpotForReport = spot; // Aktiven Spot für Korrektur-Meldung merken
+
   const sheet = document.getElementById("bottomSheet");
   const badge = document.getElementById("verifiedBadge");
   const navBtn = document.getElementById("navBtn");
