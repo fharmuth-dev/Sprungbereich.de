@@ -280,7 +280,7 @@ function renderImagePreviews() {
   if (!container) return;
   container.innerHTML = "";
 
-  selectedImageFiles.forEach((file, idx) => {
+  selectedImageFiles.forEach((file) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const imgWrap = document.createElement("div");
@@ -342,7 +342,7 @@ async function uploadSpotImages() {
   return uploadedUrls;
 }
 
-// Spots aus Supabase laden
+// Spots aus Supabase laden (Angepasst für korrekte Typen & Sichtbarkeit)
 async function loadSpotsFromSupabase() {
   try {
     const { data, error } = await supabaseClient
@@ -356,16 +356,16 @@ async function loadSpotsFromSupabase() {
 
     allSpots = data.map(spot => ({
       id: spot.id,
-      name: spot.title,
-      city: spot.description,
-      type: spot.type,
-      height: spot.height,
+      name: spot.title || "Unbenannter Spot",
+      city: spot.description || "",
+      type: spot.type || "Freibad",
+      height: Number(spot.height) || 0,
       facilities: spot.facilities || [],
       images: spot.images || [],
       verified: spot.status === 'approved',
       status: spot.status,
-      lat: spot.latitude,
-      lng: spot.longitude
+      lat: Number(spot.latitude),
+      lng: Number(spot.longitude)
     }));
 
     applyAllFilters();
@@ -475,6 +475,11 @@ function applyAllFilters() {
   markersGroup.clearLayers();
 
   const filtered = allSpots.filter(spot => {
+    // Falls Koordinaten ungültig sind, ausfiltern
+    if (isNaN(spot.lat) || isNaN(spot.lng) || spot.lat === 0 || spot.lng === 0) {
+      return false;
+    }
+
     const matchHeight = (spot.height || 0) >= minHeight;
     const matchType = type === "all" || spot.type === type;
     const matchVerified = !verifiedOnly || spot.verified === true;
@@ -567,7 +572,7 @@ async function handleAddSpotSubmit(e) {
     lat = tempSelectedLatLng.lat;
     lng = tempSelectedLatLng.lng;
   } else {
-    // 2. Ansonsten: Adresse/Ort über Geocoding exakt bestimmen (Straße + Ort oder nur Ort)
+    // 2. Ansonsten: Adresse/Ort über Geocoding exakt bestimmen
     const fullAddress = street ? `${street}, ${city}, Germany` : `${city}, Germany`;
 
     try {
@@ -597,7 +602,7 @@ async function handleAddSpotSubmit(e) {
   }
 
   // In Supabase Tabelle 'Spots' eintragen
-  const { data, error } = await supabaseClient
+  const { error } = await supabaseClient
     .from('Spots')
     .insert([
       {
@@ -611,8 +616,7 @@ async function handleAddSpotSubmit(e) {
         longitude: lng,
         status: 'approved'
       }
-    ])
-    .select();
+    ]);
 
   if (error) {
     console.error("Fehler beim Speichern in Supabase:", error);
