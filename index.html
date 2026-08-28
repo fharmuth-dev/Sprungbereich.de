@@ -54,7 +54,7 @@
         </select>
       </div>
 
-      <!-- NEU: Standort GPS-Button -->
+      <!-- GPS Standort Button -->
       <button id="locateBtn" class="btn-search-glow" title="Mein Standort" style="background: linear-gradient(135deg, #10b981, #059669);">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
       </button>
@@ -106,17 +106,23 @@
       </div>
     </div>
 
-    <!-- Footer Toggle -->
-    <div class="filter-footer">
+    <!-- Footer Toggle & Rechtslinks -->
+    <div class="filter-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
       <label class="toggle-container">
         <input type="checkbox" id="verifiedOnlyToggle">
         <span class="toggle-custom"></span>
         <span class="toggle-text">Nur verifizierte Spots</span>
       </label>
+
+      <!-- NEU: Links für Impressum & Datenschutz -->
+      <div class="legal-links" style="font-size: 11px; opacity: 0.7;">
+        <a href="#" id="openImpressumBtn" style="color: #fff; text-decoration: underline; margin-right: 8px;">Impressum</a>
+        <a href="#" id="openPrivacyBtn" style="color: #fff; text-decoration: underline;">Datenschutz</a>
+      </div>
     </div>
   </div>
 
-  <!-- ARCADE / DIVE COMMUNITY BANNER (Unten zentriert) -->
+  <!-- ARCADE / DIVE COMMUNITY BANNER -->
   <div class="arcade-cta-card" id="openAddModalBtn">
     <div class="arcade-content">
       <div class="arcade-title" id="dynamicGraffitiTitle">
@@ -173,7 +179,7 @@
           </select>
         </div>
 
-        <!-- Vorhandene Sprunganlagen / Höhen (Mehrfachauswahl) -->
+        <!-- Sprunganlagen / Höhen -->
         <div class="modal-field">
           <label>Vorhandene Sprungelemente (Mehrfachauswahl)</label>
           <div class="checkbox-grid">
@@ -214,20 +220,83 @@
           </div>
         </div>
 
-        <!-- NEU: Fotos hochladen (Maximal 3 Bilder) -->
+        <!-- Fotos hochladen -->
         <div class="modal-field">
           <label>Fotos hinzufügen (Max. 3 Bilder)</label>
           <input type="file" id="spotImages" accept="image/*" multiple style="width: 100%; padding: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: #fff;">
           <div id="imagePreviewContainer" style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;"></div>
         </div>
 
-        <!-- Randnotiz für Admin-Freigabe -->
         <p class="admin-notice">
           ℹ️ <strong>Hinweis:</strong> Nach dem Eintragen wird dein Spot in der Datenbank gespeichert und nach einer Prüfung durch den Admin freigeschaltet.
         </p>
 
-        <button type="submit" class="btn-submit-spot">SPOT HINZUFÜGEN</button>
+        <button type="submit" id="submitSpotBtn" class="btn-submit-spot">SPOT HINZUFÜGEN</button>
       </form>
+    </div>
+  </div>
+
+  <!-- NEU: MODAL - KORREKTUR / ÄNDERUNG MELDEN -->
+  <div id="reportModal" class="modal-overlay">
+    <div class="modal-card arcade-modal-style">
+      <button id="closeReportModalBtn" class="btn-close-sheet" title="Schließen">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+
+      <h2 class="modal-heading">KORREKTUR MELDEN</h2>
+      <p class="modal-sub" id="reportSpotTitleSub">Spot-Anpassung einreichen</p>
+
+      <form id="reportSpotForm">
+        <input type="hidden" id="reportSpotId">
+
+        <div class="modal-field">
+          <label>Grund der Änderung</label>
+          <select id="reportReason" class="glass-select modal-select" required>
+            <option value="Falsche Höhenangabe">Sprunghöhen / Türme stimmen nicht</option>
+            <option value="Falscher Name/Adresse">Name oder Adresse ist falsch</option>
+            <option value="Dauerhaft geschlossen">Bad / Spot dauerhaft geschlossen</option>
+            <option value="Sonstiges">Sonstiges</option>
+          </select>
+        </div>
+
+        <div class="modal-field">
+          <label>Beschreibung der Korrektur</label>
+          <textarea id="reportDescription" rows="4" placeholder="Beschreibe kurz, was geändert werden muss (z. B. 'Der 10m Turm ist gesperrt, dafür gibt es jetzt ein 3m Brett')..." required style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: #fff; font-family: inherit; resize: vertical;"></textarea>
+        </div>
+
+        <button type="submit" id="submitReportBtn" class="btn-submit-spot" style="background: linear-gradient(135deg, #f59e0b, #d97706);">KORREKTUR ABSENDEN</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- NEU: MODAL - IMPRESSUM -->
+  <div id="impressumModal" class="modal-overlay">
+    <div class="modal-card arcade-modal-style" style="max-height: 80vh; overflow-y: auto;">
+      <button id="closeImpressumBtn" class="btn-close-sheet" title="Schließen">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+      <h2 class="modal-heading">IMPRESSUM</h2>
+      <div style="font-size: 13px; line-height: 1.6; opacity: 0.9;">
+        <p><strong>Angaben gemäß § 5 TMG:</strong></p>
+        <p>Max Mustermann<br>Musterstraße 123<br>12345 Musterstadt</p>
+        <p><strong>Kontakt:</strong><br>E-Mail: info@sprungbereich.de</p>
+        <p><strong>Haftung für Inhalte:</strong><br>Als Diensteanbieter sind wir gemäß § 7 Abs.1 TMG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich...</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- NEU: MODAL - DATENSCHUTZ -->
+  <div id="privacyModal" class="modal-overlay">
+    <div class="modal-card arcade-modal-style" style="max-height: 80vh; overflow-y: auto;">
+      <button id="closePrivacyBtn" class="btn-close-sheet" title="Schließen">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+      </button>
+      <h2 class="modal-heading">DATENSCHUTZ</h2>
+      <div style="font-size: 13px; line-height: 1.6; opacity: 0.9;">
+        <p><strong>1. Datenschutz auf einen Blick</strong><br>Wir nehmen den Schutz Deiner persönlichen Daten sehr ernst. Personenbezogene Daten werden auf dieser Webseite nur im notwendigen Umfang verarbeitet.</p>
+        <p><strong>2. Erfassung von Geodaten</strong><br>Diese Anwendung nutzt die GPS-Funktion Deines Endgeräts nur nach ausdrücklicher Freigabe, um Deinen Standort auf der Karte anzuzeigen und nahegelegene Spots zu berechnen.</p>
+        <p><strong>3. Drittanbieter-Dienste</strong><br>Zur Bereitstellung der Kartendaten und Geocoding nutzen wir Leaflet, Nominatim (OpenStreetMap) und Supabase für die Datenbank-Speicherung.</p>
+      </div>
     </div>
   </div>
 
@@ -240,12 +309,21 @@
       <h2 id="poolTitle">Badname</h2>
       <p id="poolType">Typ & Höhe</p>
 
-      <!-- NEU: Bildergalerie im Bottom Sheet -->
+      <!-- Bildergalerie im Bottom Sheet -->
       <div id="poolGallery" class="pool-gallery" style="display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto;"></div>
 
       <div id="poolFacilities" class="facilities-list"></div>
-      <span id="verifiedBadge" class="badge">Status</span>
-      <div class="sheet-actions">
+      
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 10px;">
+        <span id="verifiedBadge" class="badge">Status</span>
+        
+        <!-- NEU: Button für Korrektur-Meldung -->
+        <button id="openReportBtn" style="background: transparent; border: 1px solid rgba(255,255,255,0.3); color: #ccc; border-radius: 6px; padding: 4px 8px; font-size: 11px; cursor: pointer;">
+          ✏️ Änderung melden
+        </button>
+      </div>
+
+      <div class="sheet-actions" style="margin-top: 15px;">
         <a id="navBtn" href="#" target="_blank" class="btn-nav">Route starten</a>
       </div>
     </div>
