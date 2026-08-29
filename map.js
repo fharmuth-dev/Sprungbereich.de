@@ -50,7 +50,6 @@ document.addEventListener("DOMContentLoaded", () => {
   drawGermanyOutline();
 
   // === ERKENNUNG FÜR FREIES MAP-SCROLLEN ===
-  // Wenn der Nutzer die Karte manuell bewegt oder zoomt, wird die feste Radius-Suche aufgehoben
   map.on("dragstart", () => {
     resetSearchCenterState();
   });
@@ -160,7 +159,7 @@ document.addEventListener("DOMContentLoaded", () => {
       pendingPickedLatLng = e.latlng;
       removeTempMarker();
       
-      tempMarker = L.marker(e.latlng).addTo(map);
+      tempMarker = L.marker(e.latlng, { icon: create3DPinIcon("📍", "pin-wildcard") }).addTo(map);
 
       const popupContent = document.createElement("div");
       popupContent.style.textAlign = "center";
@@ -300,7 +299,10 @@ function placeTempMarker(latlng) {
   removeTempMarker();
 
   tempSelectedLatLng = latlng;
-  tempMarker = L.marker(latlng, { draggable: true }).addTo(map);
+  tempMarker = L.marker(latlng, { 
+    draggable: true,
+    icon: create3DPinIcon("➕", "pin-wildcard")
+  }).addTo(map);
 
   const popupContent = document.createElement("div");
   popupContent.style.textAlign = "center";
@@ -590,12 +592,31 @@ function updateRadiusAndPin(lat, lng) {
   map.fitBounds(radiusCircleLayer.getBounds(), { padding: [30, 30] });
 }
 
-function getSpotColor(type) {
+/* ==========================================
+   HELFER: ERSTELLUNG DER NEUEN 3D-MARKER
+   ========================================== */
+function create3DPinIcon(content, styleClass) {
+  return L.divIcon({
+    className: 'custom-3d-pin',
+    html: `
+      <div class="pin-container">
+        <div class="pin-badge ${styleClass}">
+          ${content}
+        </div>
+        <div class="pin-pointer ${styleClass}"></div>
+      </div>
+    `,
+    iconSize: [36, 42],
+    iconAnchor: [18, 42]
+  });
+}
+
+function getSpotPinClass(type) {
   switch (type) {
-    case "Freibad": return "#ffd166";
-    case "Hallenbad": return "#a855f7";
-    case "Frei- und Hallenbad": return "#ec4899";
-    case "See": default: return "#00f2fe";
+    case "Freibad": return "pin-freibad";
+    case "Hallenbad": return "pin-hallenbad";
+    case "Frei- und Hallenbad": return "pin-frei-hallenbad";
+    case "See": default: return "pin-see";
   }
 }
 
@@ -606,7 +627,7 @@ function hasWildcardFeature(spot) {
   );
 }
 
-// Haupt-Filterfunktion: Dynamische Sichtfeld-Erkennung beim Scrollen
+// Haupt-Filterfunktion mit neuen 3D Arcade Markern
 function applyAllFilters() {
   const minHeight = parseFloat(document.getElementById("heightFilter").value) || 0;
   const type = document.getElementById("typeFilter").value;
@@ -616,7 +637,6 @@ function applyAllFilters() {
 
   markersGroup.clearLayers();
 
-  // Aktuellen sichtbaren Kartenausschnitt abfragen
   const bounds = map.getBounds();
 
   const filtered = allSpots.filter(spot => {
@@ -628,14 +648,11 @@ function applyAllFilters() {
     const matchType = type === "all" || spot.type === type;
     const matchVerified = !verifiedOnly || spot.verified === true;
 
-    // Ort- / Sichtbereich-Filterung
     let matchLocation = true;
     if (currentSearchCenter) {
-      // Wenn active Suche/GPS vorhanden -> Radius um Suchpunkt prüfen
       const dist = getDistanceInKm(currentSearchCenter.lat, currentSearchCenter.lng, spot.lat, spot.lng);
       matchLocation = dist <= maxRadiusKm;
     } else {
-      // Wenn freies Scrollen -> Zeige alle Spots, die im Bild zu sehen sind!
       matchLocation = bounds.contains([spot.lat, spot.lng]);
     }
 
@@ -650,44 +667,14 @@ function applyAllFilters() {
   });
 
   filtered.forEach(spot => {
-    const spotColor = getSpotColor(spot.type);
     const isWildcard = hasWildcardFeature(spot);
+    
+    // Icon Content & Style-Zuweisung
+    const pinClass = isWildcard ? "pin-wildcard" : getSpotPinClass(spot.type);
+    const pinContent = isWildcard ? "🔥" : `${spot.height}m`;
 
-    let marker;
-
-    if (isWildcard) {
-      const wildcardIcon = L.divIcon({
-        className: 'wildcard-marker-icon',
-        html: `
-          <div style="
-            width: 26px; height: 26px; 
-            background: linear-gradient(135deg, #f59e0b, #ef4444); 
-            border: 2px solid #ffffff; border-radius: 50%; 
-            color: #ffffff; font-weight: 900; font-size: 13px; 
-            display: flex; align-items: center; justify-content: center; 
-            box-shadow: 0 0 12px rgba(245, 158, 11, 0.9);
-            cursor: pointer; font-family: sans-serif;
-          ">W</div>
-        `,
-        iconSize: [26, 26],
-        iconAnchor: [13, 13]
-      });
-
-      marker = L.marker([spot.lat, spot.lng], { icon: wildcardIcon });
-    } else {
-      marker = L.circleMarker([spot.lat, spot.lng], {
-        radius: 10,
-        fillColor: spotColor,
-        color: "#ffffff",
-        weight: 2,
-        fillOpacity: 0.95,
-        interactive: true
-      });
-
-      marker.on("add", () => {
-        if (marker._path) marker._path.style.cursor = "pointer";
-      });
-    }
+    const customIcon = create3DPinIcon(pinContent, pinClass);
+    const marker = L.marker([spot.lat, spot.lng], { icon: customIcon });
 
     marker.on("click", (e) => {
       L.DomEvent.stopPropagation(e);
