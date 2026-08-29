@@ -257,7 +257,7 @@ async function fetchAddressFromLatLng(lat, lng) {
       const city = addr.city || addr.town || addr.village || addr.municipality || addr.county || "";
       const road = addr.road || addr.pedestrian || addr.suburb || "";
       const houseNumber = addr.house_number || "";
-      const streetFull = road ? (houseNumber ? `${road}${houseNumber}` : road) : "";
+      const streetFull = road ? (houseNumber ? `${road} ${houseNumber}` : road) : "";
 
       if (city) {
         const cityInput = document.getElementById("newSpotCity");
@@ -745,5 +745,210 @@ async function handleAddSpotSubmit(e) {
       lat = tempSelectedLatLng.lat;
       lng = tempSelectedLatLng.lng;
     } else {
-      const fullAddress = street ? `${street},${city}, Germany` : `${city}, Germany`;
-      const res = await fetch(`https://nominatim.
+      const fullAddress = street ? `${street}, ${city}, Germany` : `${city}, Germany`;
+      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`);
+      const data = await res.json();
+
+      if (data && data.length > 0) {
+        lat = parseFloat(data[0].lat);
+        lng = parseFloat(data[0].lon);
+      } else {
+        alert("Standort konnte nicht geocodiert werden. Bitte nutze die Kartenauswahl.");
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = originalBtnText;
+        }
+        return;
+      }
+    }
+
+    const uploadedUrls = await uploadSpotImages();
+
+    const newSpotData = {
+      title: name,
+      city: city,
+      description: description,
+      type: type,
+      height: maxHeight,
+      facilities: selectedLabels,
+      images: uploadedUrls,
+      status: 'pending',
+      latitude: lat,
+      longitude: lng
+    };
+
+    const { data, error } = await supabaseClient
+      .from('Spots')
+      .insert([newSpotData]);
+
+    if (error) {
+      console.error("Fehler beim Speichern in Supabase:", error);
+      alert("Fehler beim Speichern des Spots!");
+    } else {
+      alert("Vielen Dank! Dein Spot wurde eingereicht und wird geprüft.");
+      closeAddModal();
+      document.getElementById("addSpotForm").reset();
+      loadSpotsFromSupabase();
+    }
+  } catch (err) {
+    console.error("Fehler beim Verarbeiten des Formulars:", err);
+    alert("Es ist ein unerwarteter Fehler aufgetreten.");
+  } finally {
+    if (submitBtn) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = originalBtnText;
+    }
+  }
+}
+
+function openBottomSheet(spot) {
+  activeSpotForReport = spot;
+
+  const sheet = document.getElementById("bottomSheet");
+  const badge = document.getElementById("verifiedBadge");
+  const navBtn = document.getElementById("navBtn");
+  const facilitiesContainer = document.getElementById("poolFacilities");
+  const galleryContainer = document.getElementById("poolGallery");
+  const descContainer = document.getElementById("poolDescription");
+
+  document.getElementById("poolTitle").textContent = spot.name;
+  document.getElementById("poolType").textContent = `${spot.type} • Max. ${spot.height}m Turm`;
+  
+  if (descContainer) {
+    if (spot.description) {
+      descContainer.textContent = spot.description;
+      descContainer.style.display = "block";
+    } else {
+      descContainer.style.display = "none";
+    }
+  }
+
+  facilitiesContainer.innerHTML = "";
+  if (spot.facilities && spot.facilities.length > 0) {
+    spot.facilities.forEach(label => {
+      const chip = document.createElement("span");
+      chip.className = "facility-chip";
+      
+      if (label.includes("Bubble") || label.includes("Rope Swing") || label.includes("Trampolin") || label.includes("Trampdive")) {
+        chip.style.borderColor = "#f59e0b";
+        chip.style.color = "#f59e0b";
+        chip.style.fontWeight = "bold";
+      }
+
+      chip.textContent = label;
+      facilitiesContainer.appendChild(chip);
+    });
+  }
+
+  if (galleryContainer) {
+    galleryContainer.innerHTML = "";
+    if (spot.images && spot.images.length > 0) {
+      galleryContainer.style.display = "flex";
+      spot.images.forEach(url => {
+        const img = document.createElement("img");
+        img.src = url;
+        img.style.width = "90px";
+        img.style.height = "90px";
+        img.style.objectFit = "cover";
+        img.style.borderRadius = "8px";
+        img.style.border = "1px solid rgba(255,255,255,0.2)";
+        img.style.cursor = "pointer";
+        img.onclick = () => window.open(url, '_blank');
+        galleryContainer.appendChild(img);
+      });
+    } else {
+      galleryContainer.style.display = "none";
+    }
+  }
+
+  if (spot.verified) {
+    badge.textContent = "Verifiziert";
+    badge.className = "badge verified";
+  } else {
+    badge.textContent = "Community-Eintrag";
+    badge.className = "badge community";
+  }
+
+  navBtn.href = `https://www.google.com/maps/search/?api=1&query=${spot.lat},${spot.lng}`;
+  sheet.classList.add("active");
+
+  if (!history.state || !history.state.sheetOpen) {
+    history.pushState({ sheetOpen: true }, "");
+  }
+}
+
+function closeBottomSheet(shouldGoBackHistory = true) {
+  const sheet = document.getElementById("bottomSheet");
+  if (sheet) sheet.classList.remove("active");
+  if (shouldGoBackHistory && history.state && history.state.sheetOpen) {
+    history.back();
+  }
+}
+
+async function executeSearch() {
+  const query = document.getElementById("searchInput").value.trim();
+  if (!query) {
+    currentSearchCenter = null;
+    if (radiusCircleLayer) map.removeLayer(radiusCircleLayer);
+    if (centerPinMarker) map.removeLayer(centerPinMarker);
+    applyAllFilters();
+    return;
+  }
+
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+    const data = await res.json();
+
+    if (data && data.length > 0) {
+      const lat = parseFloat(data[0].lat);
+      const lng = parseFloat(data[0].lon);
+
+      currentSearchCenter = { lat, lng };
+      updateRadiusAndPin(lat, lng);
+      applyAllFilters();
+    } else {
+      alert("Ort nicht gefunden. Bitte Suchbegriff anpassen.");
+    }
+  } catch (err) {
+    console.error("Fehler bei Ortssuche:", err);
+  }
+}
+
+function openReportModal() {
+  const modal = document.getElementById("reportModal");
+  if (modal) modal.classList.add("active");
+}
+
+function closeReportModal() {
+  const modal = document.getElementById("reportModal");
+  if (modal) modal.classList.remove("active");
+}
+
+async function handleReportSubmit(e) {
+  e.preventDefault();
+  const reason = document.getElementById("reportReason").value;
+  const details = document.getElementById("reportDetails").value.trim();
+
+  if (!activeSpotForReport) return;
+
+  try {
+    const { error } = await supabaseClient
+      .from('Reports')
+      .insert([{
+        spot_id: activeSpotForReport.id,
+        reason: reason,
+        details: details
+      }]);
+
+    if (error) {
+      console.error("Fehler beim Senden des Reports:", error);
+      alert("Fehler beim Senden der Meldung.");
+    } else {
+      alert("Vielen Dank für deine Meldung! Wir prüfen das Problem.");
+      closeReportModal();
+      document.getElementById("reportSpotForm").reset();
+    }
+  } catch (err) {
+    console.error("Netzwerkfehler beim Report:", err);
+  }
+}
