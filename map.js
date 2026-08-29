@@ -5,7 +5,6 @@ const SUPABASE_ANON_KEY = "sb_publishable_TPwfBJvsktOEDPZmQAcG0w_AnYnaQeW";
 // Supabase Client initialisieren
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// Globale Variablen & Karten-Zustände
 let map;
 let markersGroup;
 let countryBorderLayer = null;
@@ -13,16 +12,15 @@ let radiusCircleLayer = null;
 let centerPinMarker = null;
 let currentSearchCenter = null;
 
-let tempMarker = null;          // Temporärer Marker auf der Karte
-let tempSelectedLatLng = null; // Speichert finale Koordinaten für das Formular
-let pendingPickedLatLng = null;// Speichert Zwischen-Koordinaten vor der Ja/Nein Bestätigung
-let isPickingOnMap = false;    // Status: Nutzer wählt gerade auf der Karte aus
-let selectedImageFiles = [];   // Speichert bis zu 3 ausgewählte Bild-Dateien
-let activeSpotForReport = null; // Merkt sich den aktuell geöffneten Spot für den Report
+let tempMarker = null;          
+let tempSelectedLatLng = null; 
+let pendingPickedLatLng = null; 
+let isPickingOnMap = false;    
+let selectedImageFiles = [];   
+let activeSpotForReport = null; 
 
 let allSpots = [];
 
-// === INITIALISIERUNG DES ANWENDUNGSSTART ===
 document.addEventListener("DOMContentLoaded", () => {
   // Loading Screen nach Animation ausblenden
   setTimeout(() => {
@@ -32,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   renderGraffitiTitle("Deine Location dabei?");
 
-  // Karte initialisieren (Zentrum Deutschland)
+  // Karte initialisieren
   map = L.map("map", { zoomControl: false }).setView([51.1657, 10.4515], 6);
 
   // Esri Dark Map Tiles
@@ -41,7 +39,6 @@ document.addEventListener("DOMContentLoaded", () => {
     attribution: 'Tiles © Esri — Esri, DeLorme, NAVTEQ'
   }).addTo(map);
 
-  // Esri Labels / Straßenbezeichnungen
   L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", {
     maxZoom: 16,
     interactive: false
@@ -52,11 +49,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
   drawGermanyOutline();
 
-  // Filter Event-Listener
+  // === ERKENNUNG FÜR FREIES MAP-SCROLLEN ===
+  // Wenn der Nutzer die Karte manuell bewegt oder zoomt, wird die feste Radius-Suche aufgehoben
+  map.on("dragstart", () => {
+    resetSearchCenterState();
+  });
+
+  map.on("moveend zoomend", () => {
+    applyAllFilters();
+  });
+
+  // Event Listener für Filter
   document.getElementById("heightFilter").addEventListener("change", applyAllFilters);
   document.getElementById("typeFilter").addEventListener("change", applyAllFilters);
   document.getElementById("verifiedOnlyToggle").addEventListener("change", applyAllFilters);
-
+  
   document.getElementById("radiusFilter").addEventListener("change", () => {
     if (currentSearchCenter) {
       updateRadiusAndPin(currentSearchCenter.lat, currentSearchCenter.lng);
@@ -76,8 +83,8 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.getElementById("closeSheetBtn").addEventListener("click", () => closeBottomSheet(true));
-
-  // Spot-Hinzufügen Modal Listener
+  
+  // Modal Öffnen / Schließen Events
   document.getElementById("openAddModalBtn").addEventListener("click", () => {
     removeTempMarker();
     tempSelectedLatLng = null;
@@ -86,7 +93,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (statusText) statusText.textContent = "";
     openAddModal();
   });
-
+  
   document.getElementById("closeAddModalBtn").addEventListener("click", closeAddModal);
   document.getElementById("addSpotForm").addEventListener("submit", handleAddSpotSubmit);
 
@@ -103,9 +110,34 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Rechtliches & Report Modals
-  bindModalEvents("openImpressumBtn", "closeImpressumBtn", "impressumModal");
-  bindModalEvents("openPrivacyBtn", "closePrivacyBtn", "privacyModal");
+  // RECHTLICHES & REPORT EVENTS
+  const impressumBtn = document.getElementById("openImpressumBtn");
+  if (impressumBtn) {
+    impressumBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      document.getElementById("impressumModal").classList.add("active");
+    });
+  }
+  const closeImpressumBtn = document.getElementById("closeImpressumBtn");
+  if (closeImpressumBtn) {
+    closeImpressumBtn.addEventListener("click", () => {
+      document.getElementById("impressumModal").classList.remove("active");
+    });
+  }
+
+  const privacyBtn = document.getElementById("openPrivacyBtn");
+  if (privacyBtn) {
+    privacyBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      document.getElementById("privacyModal").classList.add("active");
+    });
+  }
+  const closePrivacyBtn = document.getElementById("closePrivacyBtn");
+  if (closePrivacyBtn) {
+    closePrivacyBtn.addEventListener("click", () => {
+      document.getElementById("privacyModal").classList.remove("active");
+    });
+  }
 
   const reportBtn = document.getElementById("openReportBtn");
   if (reportBtn) reportBtn.addEventListener("click", openReportModal);
@@ -116,7 +148,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const reportForm = document.getElementById("reportSpotForm");
   if (reportForm) reportForm.addEventListener("submit", handleReportSubmit);
 
-  // Klick-Verhalten auf der Karte
+  // Klick-Logik auf der Karte
   map.on("click", (e) => {
     const sheet = document.getElementById("bottomSheet");
     if (sheet && sheet.classList.contains("active")) {
@@ -127,7 +159,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (isPickingOnMap) {
       pendingPickedLatLng = e.latlng;
       removeTempMarker();
-
+      
       tempMarker = L.marker(e.latlng).addTo(map);
 
       const popupContent = document.createElement("div");
@@ -154,7 +186,6 @@ document.addEventListener("DOMContentLoaded", () => {
             tempMarker.closePopup();
 
             await fetchAddressFromLatLng(tempSelectedLatLng.lat, tempSelectedLatLng.lng);
-
             document.getElementById("addSpotModal").classList.add("active");
 
             const statusText = document.getElementById("locationStatusText");
@@ -178,7 +209,6 @@ document.addEventListener("DOMContentLoaded", () => {
     placeTempMarker(e.latlng);
   });
 
-  // Native History Navigation unterstützen
   window.addEventListener("popstate", () => {
     const sheet = document.getElementById("bottomSheet");
     if (sheet && sheet.classList.contains("active")) {
@@ -191,24 +221,23 @@ document.addEventListener("DOMContentLoaded", () => {
   loadSpotsFromSupabase();
 });
 
-// Hilfsfunktion zur Zuweisung einfacher Modals
-function bindModalEvents(openBtnId, closeBtnId, modalId) {
-  const openBtn = document.getElementById(openBtnId);
-  if (openBtn) {
-    openBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      document.getElementById(modalId).classList.add("active");
-    });
-  }
-  const closeBtn = document.getElementById(closeBtnId);
-  if (closeBtn) {
-    closeBtn.addEventListener("click", () => {
-      document.getElementById(modalId).classList.remove("active");
-    });
+// Setzt die fixe Radiussuche zurück, sobald der Nutzer frei scrollt
+function resetSearchCenterState() {
+  if (currentSearchCenter || radiusCircleLayer || centerPinMarker) {
+    currentSearchCenter = null;
+    if (radiusCircleLayer) {
+      map.removeLayer(radiusCircleLayer);
+      radiusCircleLayer = null;
+    }
+    if (centerPinMarker) {
+      map.removeLayer(centerPinMarker);
+      centerPinMarker = null;
+    }
+    const searchInput = document.getElementById("searchInput");
+    if (searchInput) searchInput.value = "";
   }
 }
 
-// GPS Standortermittlung
 function getUserLocation() {
   const locateBtn = document.getElementById("locateBtn");
 
@@ -223,24 +252,23 @@ function getUserLocation() {
     (position) => {
       if (locateBtn) locateBtn.style.opacity = "1";
       const { latitude, longitude } = position.coords;
-
+      
       currentSearchCenter = { lat: latitude, lng: longitude };
-
+      
       const searchInput = document.getElementById("searchInput");
       if (searchInput) searchInput.value = "Mein Standort";
-
+      
       updateRadiusAndPin(latitude, longitude);
       applyAllFilters();
     },
     (error) => {
       if (locateBtn) locateBtn.style.opacity = "1";
-      alert("Standort konnte nicht ermittelt werden. Bitte Berechtigung im Browser prüfen.");
+      alert("Standort konnte nicht ermittelt werden.");
     },
     { enableHighAccuracy: true }
   );
 }
 
-// Nominatim Reverse Geocoding
 async function fetchAddressFromLatLng(lat, lng) {
   try {
     const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
@@ -268,7 +296,6 @@ async function fetchAddressFromLatLng(lat, lng) {
   }
 }
 
-// Setzt temporären Marker inkl. Drag & Confirm
 function placeTempMarker(latlng) {
   removeTempMarker();
 
@@ -321,7 +348,6 @@ function removeTempMarker() {
   }
 }
 
-// Vorschau & Komprimierung von Upload-Bildern
 function handleImageSelect(e) {
   const files = Array.from(e.target.files);
 
@@ -450,7 +476,6 @@ async function uploadSpotImages() {
   return uploadedUrls;
 }
 
-// Supabase Daten laden
 async function loadSpotsFromSupabase() {
   try {
     const { data, error } = await supabaseClient
@@ -483,7 +508,6 @@ async function loadSpotsFromSupabase() {
   }
 }
 
-// Titel-Animation / Styling
 function renderGraffitiTitle(text) {
   const container = document.getElementById("dynamicGraffitiTitle");
   if (!container) return;
@@ -506,7 +530,6 @@ function renderGraffitiTitle(text) {
   });
 }
 
-// Karten-Grenzlinie Deutschland zeichnen
 function drawGermanyOutline() {
   fetch(`https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&country=Germany&limit=1`)
     .then(res => res.json())
@@ -526,7 +549,6 @@ function drawGermanyOutline() {
     });
 }
 
-// Haversine Distanzberechnung
 function getDistanceInKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -584,7 +606,7 @@ function hasWildcardFeature(spot) {
   );
 }
 
-// Hauptfunktion: Filter anwenden & Marker zeichnen
+// Haupt-Filterfunktion: Dynamische Sichtfeld-Erkennung beim Scrollen
 function applyAllFilters() {
   const minHeight = parseFloat(document.getElementById("heightFilter").value) || 0;
   const type = document.getElementById("typeFilter").value;
@@ -593,6 +615,9 @@ function applyAllFilters() {
   const maxRadiusKm = parseFloat(document.getElementById("radiusFilter").value) || 25;
 
   markersGroup.clearLayers();
+
+  // Aktuellen sichtbaren Kartenausschnitt abfragen
+  const bounds = map.getBounds();
 
   const filtered = allSpots.filter(spot => {
     if (isNaN(spot.lat) || isNaN(spot.lng) || spot.lat === 0 || spot.lng === 0) {
@@ -603,19 +628,25 @@ function applyAllFilters() {
     const matchType = type === "all" || spot.type === type;
     const matchVerified = !verifiedOnly || spot.verified === true;
 
+    // Ort- / Sichtbereich-Filterung
+    let matchLocation = true;
+    if (currentSearchCenter) {
+      // Wenn active Suche/GPS vorhanden -> Radius um Suchpunkt prüfen
+      const dist = getDistanceInKm(currentSearchCenter.lat, currentSearchCenter.lng, spot.lat, spot.lng);
+      matchLocation = dist <= maxRadiusKm;
+    } else {
+      // Wenn freies Scrollen -> Zeige alle Spots, die im Bild zu sehen sind!
+      matchLocation = bounds.contains([spot.lat, spot.lng]);
+    }
+
     let matchQuery = true;
-    if (!currentSearchCenter && query !== "") {
+    if (query !== "" && query !== "mein standort") {
       matchQuery = spot.name.toLowerCase().includes(query) || 
                    (spot.city && spot.city.toLowerCase().includes(query)) ||
                    (spot.description && spot.description.toLowerCase().includes(query));
     }
 
-    let matchRadius = true;
-    if (currentSearchCenter) {
-      matchRadius = getDistanceInKm(currentSearchCenter.lat, currentSearchCenter.lng, spot.lat, spot.lng) <= maxRadiusKm;
-    }
-
-    return matchHeight && matchType && matchVerified && matchQuery && matchRadius;
+    return matchHeight && matchType && matchVerified && matchLocation && matchQuery;
   });
 
   filtered.forEach(spot => {
@@ -629,20 +660,13 @@ function applyAllFilters() {
         className: 'wildcard-marker-icon',
         html: `
           <div style="
-            width: 26px; 
-            height: 26px; 
+            width: 26px; height: 26px; 
             background: linear-gradient(135deg, #f59e0b, #ef4444); 
-            border: 2px solid #ffffff; 
-            border-radius: 50%; 
-            color: #ffffff; 
-            font-weight: 900; 
-            font-size: 13px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: center; 
+            border: 2px solid #ffffff; border-radius: 50%; 
+            color: #ffffff; font-weight: 900; font-size: 13px; 
+            display: flex; align-items: center; justify-content: center; 
             box-shadow: 0 0 12px rgba(245, 158, 11, 0.9);
-            cursor: pointer;
-            font-family: sans-serif;
+            cursor: pointer; font-family: sans-serif;
           ">W</div>
         `,
         iconSize: [26, 26],
@@ -883,9 +907,7 @@ function closeBottomSheet(shouldGoBackHistory = true) {
 async function executeSearch() {
   const query = document.getElementById("searchInput").value.trim();
   if (!query) {
-    currentSearchCenter = null;
-    if (radiusCircleLayer) map.removeLayer(radiusCircleLayer);
-    if (centerPinMarker) map.removeLayer(centerPinMarker);
+    resetSearchCenterState();
     applyAllFilters();
     return;
   }
@@ -928,7 +950,7 @@ async function handleReportSubmit(e) {
 
   try {
     const { error } = await supabaseClient
-      .from('Reports')
+      .from('spot_reports')
       .insert([{
         spot_id: activeSpotForReport.id,
         reason: reason,
