@@ -36,7 +36,7 @@ document.addEventListener("DOMContentLoaded", () => {
   // Esri Dark Map Tiles (Stabil, kostenlos, ohne Key)
   L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
     maxZoom: 16,
-    attribution: 'Tiles &copy; Esri &mdash; Esri, DeLorme, NAVTEQ'
+    attribution: 'Tiles © Esri — Esri, DeLorme, NAVTEQ'
   }).addTo(map);
 
   // Deutsche Beschriftungen / Labels
@@ -150,7 +150,6 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // 1. Wenn Nutzer aus dem Modal heraus "Auf Karte markieren" gewählt hat
     if (isPickingOnMap) {
       pendingPickedLatLng = e.latlng;
       removeTempMarker();
@@ -180,10 +179,8 @@ document.addEventListener("DOMContentLoaded", () => {
             isPickingOnMap = false;
             tempMarker.closePopup();
 
-            // Adresse via Reverse Geocoding abfragen
             await fetchAddressFromLatLng(tempSelectedLatLng.lat, tempSelectedLatLng.lng);
 
-            // Modal wieder öffnen
             document.getElementById("addSpotModal").classList.add("active");
 
             const statusText = document.getElementById("locationStatusText");
@@ -204,7 +201,6 @@ document.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
-    // 2. Standard-Klick auf der Karte mit Bestätigung (außerhalb des Modals)
     placeTempMarker(e.latlng);
   });
 
@@ -217,11 +213,9 @@ document.addEventListener("DOMContentLoaded", () => {
     closeReportModal();
   });
 
-  // Spots aus Supabase laden
   loadSpotsFromSupabase();
 });
 
-// GPS / Standort des Nutzers ermitteln
 function getUserLocation() {
   const locateBtn = document.getElementById("locateBtn");
 
@@ -239,7 +233,6 @@ function getUserLocation() {
       
       currentSearchCenter = { lat: latitude, lng: longitude };
       
-      // Suchfeld aktualisieren & Umkreis mit Pin setzen
       const searchInput = document.getElementById("searchInput");
       if (searchInput) searchInput.value = "Mein Standort";
       
@@ -254,7 +247,6 @@ function getUserLocation() {
   );
 }
 
-// Reverse Geocoding: Adresse aus Lat/Lng über Nominatim laden
 async function fetchAddressFromLatLng(lat, lng) {
   try {
     const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
@@ -262,13 +254,10 @@ async function fetchAddressFromLatLng(lat, lng) {
 
     if (data && data.address) {
       const addr = data.address;
-      
-      // Stadt / Ort ermitteln
       const city = addr.city || addr.town || addr.village || addr.municipality || addr.county || "";
-      // Straße & Hausnummer ermitteln
       const road = addr.road || addr.pedestrian || addr.suburb || "";
       const houseNumber = addr.house_number || "";
-      const streetFull = road ? (houseNumber ? `${road} ${houseNumber}` : road) : "";
+      const streetFull = road ? (houseNumber ? `${road}${houseNumber}` : road) : "";
 
       if (city) {
         const cityInput = document.getElementById("newSpotCity");
@@ -285,7 +274,6 @@ async function fetchAddressFromLatLng(lat, lng) {
   }
 }
 
-// Temporären Pin auf der Karte setzen
 function placeTempMarker(latlng) {
   removeTempMarker();
 
@@ -316,9 +304,7 @@ function placeTempMarker(latlng) {
 
     if (confirmBtn) {
       confirmBtn.addEventListener("click", async () => {
-        // Adresse via Reverse Geocoding vorbefüllen
         await fetchAddressFromLatLng(tempSelectedLatLng.lat, tempSelectedLatLng.lng);
-        
         openAddModal();
         const statusText = document.getElementById("locationStatusText");
         if (statusText) statusText.textContent = "✓ Standort auf Karte gewählt & Adresse ermittelt!";
@@ -340,7 +326,6 @@ function removeTempMarker() {
   }
 }
 
-// Handler für die Bildauswahl (Maximal 3 Bilder)
 function handleImageSelect(e) {
   const files = Array.from(e.target.files);
 
@@ -391,7 +376,6 @@ function resetImageSelection() {
   if (input) input.value = "";
 }
 
-// Hilfsfunktion: Bild im Browser vor dem Upload komprimieren
 function compressImage(file, maxWidth = 1200, quality = 0.7) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -437,15 +421,12 @@ function compressImage(file, maxWidth = 1200, quality = 0.7) {
   });
 }
 
-// Bilder in Supabase Storage hochladen (mit automatischer Komprimierung)
 async function uploadSpotImages() {
   const uploadedUrls = [];
 
   for (const file of selectedImageFiles) {
     try {
-      // Bild vor Upload auf max. 1200px Breite & WebP-Format verkleinern
       const compressedFile = await compressImage(file);
-      
       const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.webp`;
       const filePath = `${fileName}`;
 
@@ -458,7 +439,6 @@ async function uploadSpotImages() {
         continue;
       }
 
-      // Public URL des hochgeladenen Bildes holen
       const { data: publicUrlData } = supabaseClient.storage
         .from('spot-images')
         .getPublicUrl(filePath);
@@ -474,7 +454,7 @@ async function uploadSpotImages() {
   return uploadedUrls;
 }
 
-// Spots aus Supabase laden (Angepasst für korrekte Typen & Sichtbarkeit)
+// Spots aus Supabase laden
 async function loadSpotsFromSupabase() {
   try {
     const { data, error } = await supabaseClient
@@ -489,7 +469,8 @@ async function loadSpotsFromSupabase() {
     allSpots = data.map(spot => ({
       id: spot.id,
       name: spot.title || "Unbenannter Spot",
-      city: spot.description || "",
+      city: spot.city || "",
+      description: spot.description || "",
       type: spot.type || "Freibad",
       height: Number(spot.height) || 0,
       facilities: spot.facilities || [],
@@ -597,6 +578,14 @@ function getSpotColor(type) {
   }
 }
 
+// Prüfung: Besitzt ein Spot ein Wildcard-Merkmal?
+function hasWildcardFeature(spot) {
+  if (!spot.facilities || !Array.isArray(spot.facilities)) return false;
+  return spot.facilities.some(f => 
+    f.includes("Bubble") || f.includes("Rope Swing") || f.includes("Trampolin") || f.includes("Trampdive")
+  );
+}
+
 function applyAllFilters() {
   const minHeight = parseFloat(document.getElementById("heightFilter").value) || 0;
   const type = document.getElementById("typeFilter").value;
@@ -607,7 +596,6 @@ function applyAllFilters() {
   markersGroup.clearLayers();
 
   const filtered = allSpots.filter(spot => {
-    // Falls Koordinaten ungültig sind, ausfiltern
     if (isNaN(spot.lat) || isNaN(spot.lng) || spot.lat === 0 || spot.lng === 0) {
       return false;
     }
@@ -619,7 +607,8 @@ function applyAllFilters() {
     let matchQuery = true;
     if (!currentSearchCenter && query !== "") {
       matchQuery = spot.name.toLowerCase().includes(query) || 
-                   spot.city.toLowerCase().includes(query);
+                   (spot.city && spot.city.toLowerCase().includes(query)) ||
+                   (spot.description && spot.description.toLowerCase().includes(query));
     }
 
     let matchRadius = true;
@@ -632,19 +621,52 @@ function applyAllFilters() {
 
   filtered.forEach(spot => {
     const spotColor = getSpotColor(spot.type);
+    const isWildcard = hasWildcardFeature(spot);
 
-    const marker = L.circleMarker([spot.lat, spot.lng], {
-      radius: 10,
-      fillColor: spotColor,
-      color: "#ffffff",
-      weight: 2,
-      fillOpacity: 0.95,
-      interactive: true
-    });
+    let marker;
 
-    marker.on("add", () => {
-      if (marker._path) marker._path.style.cursor = "pointer";
-    });
+    if (isWildcard) {
+      // Spezieller Marker für Wildcard Spots mit [W] Logo
+      const wildcardIcon = L.divIcon({
+        className: 'wildcard-marker-icon',
+        html: `
+          <div style="
+            width: 26px; 
+            height: 26px; 
+            background: linear-gradient(135deg, #f59e0b, #ef4444); 
+            border: 2px solid #ffffff; 
+            border-radius: 50%; 
+            color: #ffffff; 
+            font-weight: 900; 
+            font-size: 13px; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            box-shadow: 0 0 12px rgba(245, 158, 11, 0.9);
+            cursor: pointer;
+            font-family: sans-serif;
+          ">W</div>
+        `,
+        iconSize: [26, 26],
+        iconAnchor: [13, 13]
+      });
+
+      marker = L.marker([spot.lat, spot.lng], { icon: wildcardIcon });
+    } else {
+      // Standard Runder Marker für reguläre Spots
+      marker = L.circleMarker([spot.lat, spot.lng], {
+        radius: 10,
+        fillColor: spotColor,
+        color: "#ffffff",
+        weight: 2,
+        fillOpacity: 0.95,
+        interactive: true
+      });
+
+      marker.on("add", () => {
+        if (marker._path) marker._path.style.cursor = "pointer";
+      });
+    }
 
     marker.on("click", (e) => {
       L.DomEvent.stopPropagation(e);
@@ -680,6 +702,7 @@ async function handleAddSpotSubmit(e) {
   const streetEl = document.getElementById("newSpotStreet");
   const street = streetEl ? streetEl.value.trim() : "";
   const type = document.getElementById("newSpotType").value;
+  const description = document.getElementById("newSpotDescription") ? document.getElementById("newSpotDescription").value.trim() : "";
 
   const checkedBoxes = document.querySelectorAll(".height-cb:checked");
   
@@ -697,9 +720,18 @@ async function handleAddSpotSubmit(e) {
     if (val > maxHeight) maxHeight = val;
   });
 
+  // Wildcard Special Features auslesen & anhängen
+  const cbBubble = document.getElementById("cbBubbleSystem");
+  if (cbBubble && cbBubble.checked) selectedLabels.push("🫧 Bubble-Anlage");
+
+  const cbRope = document.getElementById("cbRopeSwing");
+  if (cbRope && cbRope.checked) selectedLabels.push("🧗 Rope Swing / Seilbahn");
+
+  const cbTramp = document.getElementById("cbTrampdive");
+  if (cbTramp && cbTramp.checked) selectedLabels.push("🤸 Trampolin / Trampdive");
+
   if (!name || !city) return;
 
-  // Button-Status auf Laden setzen
   if (submitBtn) {
     submitBtn.disabled = true;
     submitBtn.textContent = "WIRD GESPEICHERT...";
@@ -709,244 +741,9 @@ async function handleAddSpotSubmit(e) {
     let lat = null;
     let lng = null;
 
-    // 1. Wenn Koordinaten direkt durch Klick auf der Karte gesetzt wurden
     if (tempSelectedLatLng) {
       lat = tempSelectedLatLng.lat;
       lng = tempSelectedLatLng.lng;
     } else {
-      // 2. Ansonsten: Adresse/Ort über Geocoding exakt bestimmen
-      const fullAddress = street ? `${street}, ${city}, Germany` : `${city}, Germany`;
-
-      const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(fullAddress)}`);
-      const results = await res.json();
-      
-      if (results && results.length > 0) {
-        lat = parseFloat(results[0].lat);
-        lng = parseFloat(results[0].lon);
-      } else {
-        alert("Die eingegebene Adresse/Ort konnte nicht gefunden werden. Bitte nutze 'Auf Karte markieren'.");
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.textContent = originalBtnText;
-        }
-        return;
-      }
-    }
-
-    const addressText = street ? `${street}, ${city}` : city;
-
-    // Bilder hochladen, falls welche ausgewählt wurden
-    let imageUrls = [];
-    if (selectedImageFiles.length > 0) {
-      imageUrls = await uploadSpotImages();
-    }
-
-    // In Supabase Tabelle 'Spots' eintragen (mit Status 'pending')
-    const { error } = await supabaseClient
-      .from('Spots')
-      .insert([
-        {
-          title: name,
-          description: addressText,
-          type: type,
-          height: maxHeight,
-          facilities: selectedLabels,
-          images: imageUrls,
-          latitude: lat,
-          longitude: lng,
-          status: 'pending'
-        }
-      ]);
-
-    if (error) {
-      console.error("Fehler beim Speichern in Supabase:", error);
-      alert("Fehler beim Speichern: " + error.message);
-      return;
-    }
-
-    removeTempMarker();
-    await loadSpotsFromSupabase();
-
-    closeAddModal();
-    document.getElementById("addSpotForm").reset();
-    resetImageSelection();
-    const statusText = document.getElementById("locationStatusText");
-    if (statusText) statusText.textContent = "";
-
-    // Karte sofort auf den eingetragenen Spot zentrieren
-    map.setView([lat, lng], 15);
-    alert("Vielen Dank! Dein Spot wurde eingereicht und wird in Kürze geprüft.");
-
-  } catch (err) {
-    console.error("Fehler beim Absenden des Spots:", err);
-    alert("Ein unerwarteter Fehler ist aufgetreten.");
-  } finally {
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.textContent = originalBtnText;
-    }
-  }
-}
-
-// === REPORT / KORREKTUR MELDEN FUNKTIONEN ===
-function openReportModal() {
-  if (!activeSpotForReport) return;
-  
-  const spotIdInput = document.getElementById("reportSpotId");
-  const subTitle = document.getElementById("reportSpotTitleSub");
-
-  if (spotIdInput) spotIdInput.value = activeSpotForReport.id;
-  if (subTitle) subTitle.textContent = `Für: ${activeSpotForReport.name}`;
-
-  document.getElementById("reportModal").classList.add("active");
-}
-
-function closeReportModal() {
-  const reportModal = document.getElementById("reportModal");
-  if (reportModal) reportModal.classList.remove("active");
-  const reportForm = document.getElementById("reportSpotForm");
-  if (reportForm) reportForm.reset();
-}
-
-async function handleReportSubmit(e) {
-  e.preventDefault();
-
-  const submitBtn = e.target.querySelector('button[type="submit"]') || document.getElementById("submitReportBtn");
-  const originalText = submitBtn ? submitBtn.textContent : "";
-
-  const spotId = document.getElementById("reportSpotId")?.value;
-  const reason = document.getElementById("reportReason")?.value;
-  const description = document.getElementById("reportDescription")?.value.trim();
-
-  if (!description) {
-    alert("Bitte gib eine Beschreibung der Änderung an.");
-    return;
-  }
-
-  if (submitBtn) {
-    submitBtn.disabled = true;
-    submitBtn.textContent = "WIRD GESENDET...";
-  }
-
-  try {
-    const { error } = await supabaseClient
-      .from('spot_reports')
-      .insert([
-        {
-          spot_id: spotId,
-          reason: reason,
-          description: description,
-          status: 'pending'
-        }
-      ]);
-
-    if (error) {
-      alert("Fehler beim Senden der Korrektur: " + error.message);
-    } else {
-      alert("Danke! Deine Meldung wurde erfolgreich übermittelt.");
-      closeReportModal();
-    }
-  } catch (err) {
-    console.error("Fehler beim Absenden des Reports:", err);
-    alert("Ein Fehler ist aufgetreten.");
-  } finally {
-    if (submitBtn) {
-      submitBtn.disabled = false;
-      submitBtn.textContent = originalText;
-    }
-  }
-}
-
-function openBottomSheet(spot) {
-  activeSpotForReport = spot; // Aktiven Spot für Korrektur-Meldung merken
-
-  const sheet = document.getElementById("bottomSheet");
-  const badge = document.getElementById("verifiedBadge");
-  const navBtn = document.getElementById("navBtn");
-  const facilitiesContainer = document.getElementById("poolFacilities");
-  const galleryContainer = document.getElementById("poolGallery");
-
-  document.getElementById("poolTitle").textContent = spot.name;
-  document.getElementById("poolType").textContent = `${spot.type} • Max. ${spot.height}m Turm`;
-  
-  facilitiesContainer.innerHTML = "";
-  if (spot.facilities && spot.facilities.length > 0) {
-    spot.facilities.forEach(label => {
-      const chip = document.createElement("span");
-      chip.className = "facility-chip";
-      chip.textContent = label;
-      facilitiesContainer.appendChild(chip);
-    });
-  }
-
-  // Galerie-Bilder rendern
-  if (galleryContainer) {
-    galleryContainer.innerHTML = "";
-    if (spot.images && spot.images.length > 0) {
-      galleryContainer.style.display = "flex";
-      spot.images.forEach(url => {
-        const img = document.createElement("img");
-        img.src = url;
-        img.style.width = "90px";
-        img.style.height = "90px";
-        img.style.objectFit = "cover";
-        img.style.borderRadius = "8px";
-        img.style.border = "1px solid rgba(255,255,255,0.2)";
-        img.style.cursor = "pointer";
-        img.onclick = () => window.open(url, '_blank');
-        galleryContainer.appendChild(img);
-      });
-    } else {
-      galleryContainer.style.display = "none";
-    }
-  }
-
-  if (spot.verified) {
-    badge.textContent = "Verifiziert";
-    badge.className = "badge verified";
-  } else {
-    badge.textContent = "Community-Eintrag";
-    badge.className = "badge community";
-  }
-
-  navBtn.href = `https://www.google.com/maps/dir/?api=1&destination=${spot.lat},${spot.lng}`;
-  sheet.classList.add("active");
-
-  if (!history.state || !history.state.sheetOpen) {
-    history.pushState({ sheetOpen: true }, "");
-  }
-}
-
-function closeBottomSheet(triggerPopstate = true) {
-  const sheet = document.getElementById("bottomSheet");
-  if (sheet.classList.contains("active")) {
-    sheet.classList.remove("active");
-    if (triggerPopstate && history.state && history.state.sheetOpen) {
-      history.back();
-    }
-  }
-}
-
-function executeSearch() {
-  const query = document.getElementById("searchInput").value.trim();
-
-  if (query === "") {
-    currentSearchCenter = null;
-    if (radiusCircleLayer) map.removeLayer(radiusCircleLayer);
-    if (centerPinMarker) map.removeLayer(centerPinMarker);
-    applyAllFilters();
-    return;
-  }
-
-  fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=de`)
-    .then(res => res.json())
-    .then(results => {
-      if (results && results.length > 0) {
-        const lat = parseFloat(results[0].lat);
-        const lon = parseFloat(results[0].lon);
-        currentSearchCenter = { lat, lng: lon };
-        updateRadiusAndPin(lat, lon);
-        applyAllFilters();
-      }
-    });
-}
+      const fullAddress = street ? `${street},${city}, Germany` : `${city}, Germany`;
+      const res = await fetch(`https://nominatim.
