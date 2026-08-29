@@ -5,6 +5,7 @@ const SUPABASE_ANON_KEY = "sb_publishable_TPwfBJvsktOEDPZmQAcG0w_AnYnaQeW";
 // Supabase Client initialisieren
 const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// Globale Variablen & Karten-Zustände
 let map;
 let markersGroup;
 let countryBorderLayer = null;
@@ -12,15 +13,16 @@ let radiusCircleLayer = null;
 let centerPinMarker = null;
 let currentSearchCenter = null;
 
-let tempMarker = null;          // Temporärer Marker für die Standort-Bestätigung
+let tempMarker = null;          // Temporärer Marker auf der Karte
 let tempSelectedLatLng = null; // Speichert finale Koordinaten für das Formular
-let pendingPickedLatLng = null; // Speichert Zwischen-Koordinaten vor der Ja/Nein Bestätigung
+let pendingPickedLatLng = null;// Speichert Zwischen-Koordinaten vor der Ja/Nein Bestätigung
 let isPickingOnMap = false;    // Status: Nutzer wählt gerade auf der Karte aus
-let selectedImageFiles = [];   // Speichert die bis zu 3 ausgewählten Bild-Dateien
-let activeSpotForReport = null; // Merkt sich den aktuell geöffneten Spot für das Report-Modal
+let selectedImageFiles = [];   // Speichert bis zu 3 ausgewählte Bild-Dateien
+let activeSpotForReport = null; // Merkt sich den aktuell geöffneten Spot für den Report
 
 let allSpots = [];
 
+// === INITIALISIERUNG DES ANWENDUNGSSTART ===
 document.addEventListener("DOMContentLoaded", () => {
   // Loading Screen nach Animation ausblenden
   setTimeout(() => {
@@ -30,16 +32,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   renderGraffitiTitle("Deine Location dabei?");
 
-  // Karte initialisieren
+  // Karte initialisieren (Zentrum Deutschland)
   map = L.map("map", { zoomControl: false }).setView([51.1657, 10.4515], 6);
 
-  // Esri Dark Map Tiles (Stabil, kostenlos, ohne Key)
+  // Esri Dark Map Tiles
   L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
     maxZoom: 16,
     attribution: 'Tiles © Esri — Esri, DeLorme, NAVTEQ'
   }).addTo(map);
 
-  // Deutsche Beschriftungen / Labels
+  // Esri Labels / Straßenbezeichnungen
   L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", {
     maxZoom: 16,
     interactive: false
@@ -50,11 +52,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
   drawGermanyOutline();
 
-  // Event Listener für Filter
+  // Filter Event-Listener
   document.getElementById("heightFilter").addEventListener("change", applyAllFilters);
   document.getElementById("typeFilter").addEventListener("change", applyAllFilters);
   document.getElementById("verifiedOnlyToggle").addEventListener("change", applyAllFilters);
-  
+
   document.getElementById("radiusFilter").addEventListener("change", () => {
     if (currentSearchCenter) {
       updateRadiusAndPin(currentSearchCenter.lat, currentSearchCenter.lng);
@@ -64,7 +66,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("searchBtn").addEventListener("click", executeSearch);
   
-  // Event Listener für GPS / Standort-Button
   const locateBtn = document.getElementById("locateBtn");
   if (locateBtn) {
     locateBtn.addEventListener("click", getUserLocation);
@@ -75,8 +76,8 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.getElementById("closeSheetBtn").addEventListener("click", () => closeBottomSheet(true));
-  
-  // Modal Öffnen / Schließen Events (Add Spot)
+
+  // Spot-Hinzufügen Modal Listener
   document.getElementById("openAddModalBtn").addEventListener("click", () => {
     removeTempMarker();
     tempSelectedLatLng = null;
@@ -85,17 +86,15 @@ document.addEventListener("DOMContentLoaded", () => {
     if (statusText) statusText.textContent = "";
     openAddModal();
   });
-  
+
   document.getElementById("closeAddModalBtn").addEventListener("click", closeAddModal);
   document.getElementById("addSpotForm").addEventListener("submit", handleAddSpotSubmit);
 
-  // Event für Bild-Upload Auswahl (Max. 3 Bilder)
   const imageInput = document.getElementById("spotImages");
   if (imageInput) {
     imageInput.addEventListener("change", handleImageSelect);
   }
 
-  // Button "Auf Karte markieren" im Modal
   const pickBtn = document.getElementById("pickOnMapBtn");
   if (pickBtn) {
     pickBtn.addEventListener("click", () => {
@@ -104,34 +103,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // === RECHTLICHES & REPORT MODAL EVENTS ===
-  const impressumBtn = document.getElementById("openImpressumBtn");
-  if (impressumBtn) {
-    impressumBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      document.getElementById("impressumModal").classList.add("active");
-    });
-  }
-  const closeImpressumBtn = document.getElementById("closeImpressumBtn");
-  if (closeImpressumBtn) {
-    closeImpressumBtn.addEventListener("click", () => {
-      document.getElementById("impressumModal").classList.remove("active");
-    });
-  }
-
-  const privacyBtn = document.getElementById("openPrivacyBtn");
-  if (privacyBtn) {
-    privacyBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      document.getElementById("privacyModal").classList.add("active");
-    });
-  }
-  const closePrivacyBtn = document.getElementById("closePrivacyBtn");
-  if (closePrivacyBtn) {
-    closePrivacyBtn.addEventListener("click", () => {
-      document.getElementById("privacyModal").classList.remove("active");
-    });
-  }
+  // Rechtliches & Report Modals
+  bindModalEvents("openImpressumBtn", "closeImpressumBtn", "impressumModal");
+  bindModalEvents("openPrivacyBtn", "closePrivacyBtn", "privacyModal");
 
   const reportBtn = document.getElementById("openReportBtn");
   if (reportBtn) reportBtn.addEventListener("click", openReportModal);
@@ -142,7 +116,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const reportForm = document.getElementById("reportSpotForm");
   if (reportForm) reportForm.addEventListener("submit", handleReportSubmit);
 
-  // Klick-Logik auf der Karte
+  // Klick-Verhalten auf der Karte
   map.on("click", (e) => {
     const sheet = document.getElementById("bottomSheet");
     if (sheet && sheet.classList.contains("active")) {
@@ -153,7 +127,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (isPickingOnMap) {
       pendingPickedLatLng = e.latlng;
       removeTempMarker();
-      
+
       tempMarker = L.marker(e.latlng).addTo(map);
 
       const popupContent = document.createElement("div");
@@ -204,6 +178,7 @@ document.addEventListener("DOMContentLoaded", () => {
     placeTempMarker(e.latlng);
   });
 
+  // Native History Navigation unterstützen
   window.addEventListener("popstate", () => {
     const sheet = document.getElementById("bottomSheet");
     if (sheet && sheet.classList.contains("active")) {
@@ -216,6 +191,24 @@ document.addEventListener("DOMContentLoaded", () => {
   loadSpotsFromSupabase();
 });
 
+// Hilfsfunktion zur Zuweisung einfacher Modals
+function bindModalEvents(openBtnId, closeBtnId, modalId) {
+  const openBtn = document.getElementById(openBtnId);
+  if (openBtn) {
+    openBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      document.getElementById(modalId).classList.add("active");
+    });
+  }
+  const closeBtn = document.getElementById(closeBtnId);
+  if (closeBtn) {
+    closeBtn.addEventListener("click", () => {
+      document.getElementById(modalId).classList.remove("active");
+    });
+  }
+}
+
+// GPS Standortermittlung
 function getUserLocation() {
   const locateBtn = document.getElementById("locateBtn");
 
@@ -230,12 +223,12 @@ function getUserLocation() {
     (position) => {
       if (locateBtn) locateBtn.style.opacity = "1";
       const { latitude, longitude } = position.coords;
-      
+
       currentSearchCenter = { lat: latitude, lng: longitude };
-      
+
       const searchInput = document.getElementById("searchInput");
       if (searchInput) searchInput.value = "Mein Standort";
-      
+
       updateRadiusAndPin(latitude, longitude);
       applyAllFilters();
     },
@@ -247,6 +240,7 @@ function getUserLocation() {
   );
 }
 
+// Nominatim Reverse Geocoding
 async function fetchAddressFromLatLng(lat, lng) {
   try {
     const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=18&addressdetails=1`);
@@ -274,6 +268,7 @@ async function fetchAddressFromLatLng(lat, lng) {
   }
 }
 
+// Setzt temporären Marker inkl. Drag & Confirm
 function placeTempMarker(latlng) {
   removeTempMarker();
 
@@ -326,6 +321,7 @@ function removeTempMarker() {
   }
 }
 
+// Vorschau & Komprimierung von Upload-Bildern
 function handleImageSelect(e) {
   const files = Array.from(e.target.files);
 
@@ -454,7 +450,7 @@ async function uploadSpotImages() {
   return uploadedUrls;
 }
 
-// Spots aus Supabase laden
+// Supabase Daten laden
 async function loadSpotsFromSupabase() {
   try {
     const { data, error } = await supabaseClient
@@ -487,6 +483,7 @@ async function loadSpotsFromSupabase() {
   }
 }
 
+// Titel-Animation / Styling
 function renderGraffitiTitle(text) {
   const container = document.getElementById("dynamicGraffitiTitle");
   if (!container) return;
@@ -509,6 +506,7 @@ function renderGraffitiTitle(text) {
   });
 }
 
+// Karten-Grenzlinie Deutschland zeichnen
 function drawGermanyOutline() {
   fetch(`https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&country=Germany&limit=1`)
     .then(res => res.json())
@@ -528,6 +526,7 @@ function drawGermanyOutline() {
     });
 }
 
+// Haversine Distanzberechnung
 function getDistanceInKm(lat1, lon1, lat2, lon2) {
   const R = 6371;
   const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -578,7 +577,6 @@ function getSpotColor(type) {
   }
 }
 
-// Prüfung: Besitzt ein Spot ein Wildcard-Merkmal?
 function hasWildcardFeature(spot) {
   if (!spot.facilities || !Array.isArray(spot.facilities)) return false;
   return spot.facilities.some(f => 
@@ -586,6 +584,7 @@ function hasWildcardFeature(spot) {
   );
 }
 
+// Hauptfunktion: Filter anwenden & Marker zeichnen
 function applyAllFilters() {
   const minHeight = parseFloat(document.getElementById("heightFilter").value) || 0;
   const type = document.getElementById("typeFilter").value;
@@ -626,7 +625,6 @@ function applyAllFilters() {
     let marker;
 
     if (isWildcard) {
-      // Spezieller Marker für Wildcard Spots mit [W] Logo
       const wildcardIcon = L.divIcon({
         className: 'wildcard-marker-icon',
         html: `
@@ -653,7 +651,6 @@ function applyAllFilters() {
 
       marker = L.marker([spot.lat, spot.lng], { icon: wildcardIcon });
     } else {
-      // Standard Runder Marker für reguläre Spots
       marker = L.circleMarker([spot.lat, spot.lng], {
         radius: 10,
         fillColor: spotColor,
@@ -690,7 +687,6 @@ function closeAddModal() {
   resetImageSelection();
 }
 
-/* Formular absenden mit Lade-Zustand für den Speicher-Button */
 async function handleAddSpotSubmit(e) {
   e.preventDefault();
 
@@ -720,7 +716,6 @@ async function handleAddSpotSubmit(e) {
     if (val > maxHeight) maxHeight = val;
   });
 
-  // Wildcard Special Features auslesen & anhängen
   const cbBubble = document.getElementById("cbBubbleSystem");
   if (cbBubble && cbBubble.checked) selectedLabels.push("🫧 Bubble-Anlage");
 
