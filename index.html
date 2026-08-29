@@ -90,7 +90,7 @@
       </div>
     </div>
 
-    <!-- Farb-Legende -->
+    <!-- Farb-Legende inkl. Wildcard -->
     <div class="legend-row">
       <div class="legend-item">
         <span class="dot dot-freibad"></span>
@@ -104,6 +104,10 @@
         <span class="dot dot-see"></span>
         <span class="legend-text">See / Klippe</span>
       </div>
+      <div class="legend-item" title="Besondere Highlights wie Bubble-Anlage, Rope Swing oder Trampoline">
+        <span class="dot-wildcard" style="background: linear-gradient(135deg, #f59e0b, #ef4444); color: #fff; font-weight: bold; font-size: 10px; width: 16px; height: 16px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 0 8px rgba(245, 158, 11, 0.8);">W</span>
+        <span class="legend-text" style="font-weight: bold; color: #f59e0b;">Wildcard</span>
+      </div>
     </div>
 
     <!-- Footer Toggle & Rechtslinks -->
@@ -114,7 +118,7 @@
         <span class="toggle-text">Nur verifizierte Spots</span>
       </label>
 
-      <!-- NEU: Links für Impressum & Datenschutz -->
+      <!-- Links für Impressum & Datenschutz -->
       <div class="legal-links" style="font-size: 11px; opacity: 0.7;">
         <a href="#" id="openImpressumBtn" style="color: #fff; text-decoration: underline; margin-right: 8px;">Impressum</a>
         <a href="#" id="openPrivacyBtn" style="color: #fff; text-decoration: underline;">Datenschutz</a>
@@ -137,7 +141,7 @@
 
   <!-- ADD SPOT MODAL (Popup Formular) -->
   <div id="addSpotModal" class="modal-overlay">
-    <div class="modal-card arcade-modal-style">
+    <div class="modal-card arcade-modal-style" style="max-height: 90vh; overflow-y: auto;">
       <button id="closeAddModalBtn" class="btn-close-sheet" title="Schließen">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
@@ -220,6 +224,33 @@
           </div>
         </div>
 
+        <!-- NEU: Wildcard Special Features -->
+        <div class="modal-field">
+          <label style="color: #f59e0b; font-weight: bold;">⭐ Special Features / Wildcard</label>
+          <div class="checkbox-grid">
+            <label class="checkbox-badge" style="border-color: rgba(245, 158, 11, 0.4);">
+              <input type="checkbox" id="cbBubbleSystem" class="wildcard-cb" value="bubble">
+              <span>🫧 Bubble-Anlage</span>
+            </label>
+
+            <label class="checkbox-badge" style="border-color: rgba(245, 158, 11, 0.4);">
+              <input type="checkbox" id="cbRopeSwing" class="wildcard-cb" value="rope_swing">
+              <span>🧗 Rope Swing / Seilbahn</span>
+            </label>
+
+            <label class="checkbox-badge" style="border-color: rgba(245, 158, 11, 0.4);">
+              <input type="checkbox" id="cbTrampdive" class="wildcard-cb" value="trampdive">
+              <span>🤸 Trampolin / Trampdive</span>
+            </label>
+          </div>
+        </div>
+
+        <!-- NEU: Beschreibung / Nutzertext -->
+        <div class="modal-field">
+          <label>Beschreibung & Infos zum Spot</label>
+          <textarea id="newSpotDescription" rows="3" placeholder="z. B. Trampdive nur für Vereinsmitglieder nutzbar, 10m Turm schließt um 18 Uhr..." style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: #fff; font-family: inherit; resize: vertical;"></textarea>
+        </div>
+
         <!-- Fotos hochladen -->
         <div class="modal-field">
           <label>Fotos hinzufügen (Max. 3 Bilder)</label>
@@ -236,7 +267,7 @@
     </div>
   </div>
 
-  <!-- NEU: MODAL - KORREKTUR / ÄNDERUNG MELDEN -->
+  <!-- MODAL - KORREKTUR / ÄNDERUNG MELDEN -->
   <div id="reportModal" class="modal-overlay">
     <div class="modal-card arcade-modal-style">
       <button id="closeReportModalBtn" class="btn-close-sheet" title="Schließen">
@@ -269,7 +300,7 @@
     </div>
   </div>
 
-  <!-- NEU: MODAL - IMPRESSUM -->
+  <!-- MODAL - IMPRESSUM -->
   <div id="impressumModal" class="modal-overlay">
     <div class="modal-card arcade-modal-style" style="max-height: 80vh; overflow-y: auto;">
       <button id="closeImpressumBtn" class="btn-close-sheet" title="Schließen">
@@ -285,7 +316,7 @@
     </div>
   </div>
 
-  <!-- NEU: MODAL - DATENSCHUTZ -->
+  <!-- MODAL - DATENSCHUTZ -->
   <div id="privacyModal" class="modal-overlay">
     <div class="modal-card arcade-modal-style" style="max-height: 80vh; overflow-y: auto;">
       <button id="closePrivacyBtn" class="btn-close-sheet" title="Schließen">
@@ -309,6 +340,9 @@
       <h2 id="poolTitle">Badname</h2>
       <p id="poolType">Typ & Höhe</p>
 
+      <!-- NEU: Spot-Beschreibung anzeigen -->
+      <p id="poolDescription" style="font-size: 13px; color: #ddd; background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; display: none; line-height: 1.4; border-left: 3px solid #00f2fe;"></p>
+
       <!-- Bildergalerie im Bottom Sheet -->
       <div id="poolGallery" class="pool-gallery" style="display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto;"></div>
 
@@ -317,7 +351,7 @@
       <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 10px;">
         <span id="verifiedBadge" class="badge">Status</span>
         
-        <!-- NEU: Button für Korrektur-Meldung -->
+        <!-- Button für Korrektur-Meldung -->
         <button id="openReportBtn" style="background: transparent; border: 1px solid rgba(255,255,255,0.3); color: #ccc; border-radius: 6px; padding: 4px 8px; font-size: 11px; cursor: pointer;">
           ✏️ Änderung melden
         </button>
