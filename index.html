@@ -1,87 +1,277 @@
-document.addEventListener("DOMContentLoaded", () => {
-  // 1. DYNAMISCHES GRAFFITI-TITLE RENDERING
-  renderGraffitiTitle();
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Cliffdiving & Spot Finder</title>
 
-  // 2. LOADING SCREEN TIMEOUT & WELCOME MODAL TRIGGER
-  setTimeout(() => {
-    const loader = document.getElementById("loadingScreen");
-    if (loader) {
-      loader.classList.add("fade-out");
-    }
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Sedgwick+Ave&family=Story+Script&display=swap" rel="stylesheet">
 
-    // Welcome Modal einblenden (falls nicht bereits gesehen)
-    if (!localStorage.getItem("welcomeSeen")) {
-      const welcomeModal = document.getElementById("welcomeModal");
-      if (welcomeModal) {
-        welcomeModal.classList.add("active");
-      }
-    }
-  }, 3500);
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
 
-  // 3. WELCOME MODAL CLOSE BUTTON EVENT
-  const closeWelcomeBtn = document.getElementById("closeWelcomeBtn");
-  if (closeWelcomeBtn) {
-    closeWelcomeBtn.addEventListener("click", () => {
-      const welcomeModal = document.getElementById("welcomeModal");
-      if (welcomeModal) {
-        welcomeModal.classList.remove("active");
-      }
-      localStorage.setItem("welcomeSeen", "true");
-    });
-  }
+  <div id="loadingScreen" class="loading-screen">
+    <div class="splash-content">
+      <h1 class="brand-title animated-title" id="dynamicGraffitiTitle">Deine Location dabei?</h1>
+      <p class="brand-claim animated-claim">Finde die besten Klippen-, Turm- und Freibad-Spots in deiner Nähe.</p>
+      <div class="progress-bar-container">
+        <div class="progress-bar-fill"></div>
+      </div>
+    </div>
+  </div>
 
-  // 4. IMPRESSUM & DATENSCHUTZ MODALS LOGIK
-  setupLegalModals();
-});
+  <div id="map"></div>
 
-// FUNKTION FÜR DAS REGISTRIEREN DER IMPRESSUM & DATENSCHUTZ MODALS
-function setupLegalModals() {
-  const openImpressumBtn = document.getElementById("openImpressumBtn");
-  const openPrivacyBtn = document.getElementById("openPrivacyBtn");
-  const impressumModal = document.getElementById("impressumModal");
-  const privacyModal = document.getElementById("privacyModal");
-  const closeImpressumBtn = document.getElementById("closeImpressumBtn");
-  const closePrivacyBtn = document.getElementById("closePrivacyBtn");
+  <div class="search-panel">
+    <div class="search-row">
+      <div class="field-group flex-grow">
+        <label class="field-label" for="searchInput">Ort / Spot suchen</label>
+        <input type="text" id="searchInput" placeholder="z. B. München oder Spotname..." />
+      </div>
+      <button id="searchBtn" class="btn-search-glow" title="Suchen">🔍</button>
+      <button id="locateBtn" class="btn-search-glow" title="Mein Standort" style="background: linear-gradient(135deg, #10b981, #059669); color: #fff;">🎯</button>
+    </div>
 
-  if (openImpressumBtn && impressumModal) {
-    openImpressumBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      impressumModal.classList.add("active");
-    });
-  }
+    <div class="legend-row">
+      <div class="legend-item"><span class="dot dot-freibad"></span><span class="legend-text">Freibad</span></div>
+      <div class="legend-item"><span class="dot dot-hallenbad"></span><span class="legend-text">Halle</span></div>
+      <div class="legend-item"><span class="dot dot-see"></span><span class="legend-text">See</span></div>
+    </div>
 
-  if (openPrivacyBtn && privacyModal) {
-    openPrivacyBtn.addEventListener("click", (e) => {
-      e.preventDefault();
-      privacyModal.classList.add("active");
-    });
-  }
+    <div class="filter-row">
+      <div class="field-group flex-1">
+        <label class="field-label" for="typeFilter">Typ</label>
+        <select id="typeFilter" class="glass-select">
+          <option value="all">Alle Typen</option>
+          <option value="Freibad">Freibad</option>
+          <option value="Hallenbad">Hallenbad</option>
+          <option value="Frei- und Hallenbad">Frei- & Hallenbad</option>
+          <option value="See">See / Natur</option>
+        </select>
+      </div>
 
-  if (closeImpressumBtn && impressumModal) {
-    closeImpressumBtn.addEventListener("click", () => {
-      impressumModal.classList.remove("active");
-    });
-  }
+      <div class="field-group flex-1">
+        <label class="field-label" for="heightFilter">Min. Höhe</label>
+        <select id="heightFilter" class="glass-select">
+          <option value="0">Alle Höhen</option>
+          <option value="3">Ab 3m</option>
+          <option value="5">Ab 5m</option>
+          <option value="7.5">Ab 7.5m</option>
+          <option value="10">Ab 10m</option>
+          <option value="15">Ab 15m+</option>
+        </select>
+      </div>
 
-  if (closePrivacyBtn && privacyModal) {
-    closePrivacyBtn.addEventListener("click", () => {
-      privacyModal.classList.remove("active");
-    });
-  }
-}
+      <div class="field-group flex-1">
+        <label class="field-label" for="radiusFilter">Umkreis</label>
+        <select id="radiusFilter" class="glass-select">
+          <option value="10">10 km</option>
+          <option value="25" selected>25 km</option>
+          <option value="50">50 km</option>
+          <option value="100">100 km</option>
+        </select>
+      </div>
+    </div>
 
-// FUNKTION FÜR GRAFFITI TITLE ANIMATION/STYLE
-function renderGraffitiTitle() {
-  const container = document.getElementById("dynamicGraffitiTitle");
-  if (!container) return;
+    <div class="filter-footer">
+      <label class="toggle-container">
+        <input type="checkbox" id="verifiedOnlyToggle" />
+        <span class="toggle-custom"></span>
+        <span class="toggle-text">Nur verifizierte Spots anzeigen</span>
+      </label>
+    </div>
+  </div>
 
-  const text = "SPOT DROPPEN";
-  container.innerHTML = "";
+  <div id="openAddModalBtn" class="arcade-cta-card">
+    <div class="arcade-content">
+      <div class="arcade-title">
+        <span class="g-letter">SPOT</span>&nbsp;<span class="g-letter">EINTRAGEN</span>
+      </div>
+      <div class="arcade-sub">Kennst du einen Spot, der fehlt?</div>
+    </div>
+    <div class="arcade-btn-wrapper">
+      <span class="arcade-btn-glow">+ HINZUFÜGEN</span>
+    </div>
+  </div>
 
-  text.split("").forEach((char) => {
-    const span = document.createElement("span");
-    span.className = "g-letter";
-    span.textContent = char === " " ? "\u00A0" : char;
-    container.appendChild(span);
-  });
-}
+  <div id="bottomSheet" class="bottom-sheet">
+    <button id="closeSheetBtn" class="btn-close-sheet">&times;</button>
+    <div class="sheet-content">
+      <h2 id="poolTitle">Spot Name</h2>
+      <p id="poolType">Freibad • Max 10m</p>
+      <span id="verifiedBadge" class="badge">Community-Eintrag</span>
+      
+      <p id="poolDescription" style="display:none; margin-top:8px; font-size:12px; color:#cbd5e1;"></p>
+      
+      <div id="poolFacilities" class="facilities-list" style="margin-top:10px;"></div>
+      <div id="poolGallery" style="display:flex; gap:8px; overflow-x:auto; margin-bottom:14px; padding-bottom:4px;"></div>
+      
+      <a id="navBtn" href="#" target="_blank" class="btn-nav">🗺️ Route in Google Maps öffnen</a>
+      <button id="openReportBtn" class="btn-report-spot">⚠️ Fehler oder Problem melden</button>
+    </div>
+  </div>
+
+  <div id="welcomeModal" class="modal-overlay">
+    <div class="arcade-modal-style welcome-card">
+      <button id="closeWelcomeBtn" class="btn-close-sheet">&times;</button>
+      <div class="welcome-header">
+        <h2 class="welcome-title">WHAT'S UP, DIVER! 💦</h2>
+        <span class="welcome-tag">COMMUNITY PROJECT</span>
+      </div>
+      <div class="welcome-body">
+        <p><strong>Welcome Cliffdivers, Turmspringer & High Diver!</strong></p>
+        <p>On this intuitive Map you will find all the nearest Locations. See a Spot but infos are off?</p>
+        <p><strong>Selbstverständlich</strong> kannst du auch Änderungen vornehmen oder eine neue Location einreichen.</p>
+        <p>It’s a Community Project. <strong>At the start</strong>, entries might be low. <strong>Vielleicht hilfst du</strong> also mit und trägst einen Spot ein.</p>
+        <div class="welcome-info-box">
+          <p>Community-driven content: accuracy may vary, use responsibly. New entry checks in progress.</p>
+        </div>
+      </div>
+      <button id="startWelcomeBtn" class="btn-submit-spot welcome-btn">OK, LETS GO! 🔥</button>
+    </div>
+  </div>
+
+  <div id="addSpotModal" class="modal-overlay">
+    <div class="arcade-modal-style">
+      <button id="closeAddModalBtn" class="btn-close-sheet">&times;</button>
+      <h2 class="modal-heading">NEUEN SPOT EINTRAGEN</h2>
+      <p class="modal-sub">Teile deinen Lieblings-Spot mit der Community!</p>
+
+      <form id="addSpotForm">
+        <div class="modal-field">
+          <label for="newSpotName">Name des Spots *</label>
+          <input type="text" id="newSpotName" required placeholder="z. B. Inselbad Hallenbad" />
+        </div>
+
+        <div class="modal-field">
+          <label for="newSpotCity">Stadt / Ort *</label>
+          <input type="text" id="newSpotCity" required placeholder="z. B. Stuttgart" />
+        </div>
+
+        <div class="modal-field">
+          <label for="newSpotStreet">Straße & Hausnummer (Optional)</label>
+          <input type="text" id="newSpotStreet" placeholder="z. B. Sportzentrum 1" />
+        </div>
+
+        <button type="button" id="pickOnMapBtn" style="background: rgba(0, 242, 254, 0.15); color: #00f2fe; border: 1px solid #00f2fe; padding: 8px 12px; border-radius: 8px; font-size: 12px; font-weight: bold; cursor: pointer; margin-bottom: 12px; width: 100%;">
+          📍 Standort exakt auf Karte antippen
+        </button>
+        <div id="locationStatusText" style="font-size: 11px; color: #10b981; margin-bottom: 12px; font-weight: 500;"></div>
+
+        <div class="modal-field">
+          <label for="newSpotType">Typ des Spots *</label>
+          <select id="newSpotType" class="glass-select modal-select">
+            <option value="Freibad">Freibad</option>
+            <option value="Hallenbad">Hallenbad</option>
+            <option value="Frei- und Hallenbad">Frei- und Hallenbad</option>
+            <option value="See">See / Baggersee</option>
+          </select>
+        </div>
+
+        <div class="modal-field">
+          <label>Sprungelemente / Höhen *</label>
+          <div class="checkbox-grid">
+            <label class="checkbox-badge"><input type="checkbox" class="height-cb" value="1" data-label="1m Board"> <span>1m Brett</span></label>
+            <label class="checkbox-badge"><input type="checkbox" class="height-cb" value="3" data-label="3m Turm"> <span>3m Turm</span></label>
+            <label class="checkbox-badge"><input type="checkbox" class="height-cb" value="5" data-label="5m Turm"> <span>5m Turm</span></label>
+            <label class="checkbox-badge"><input type="checkbox" class="height-cb" value="7.5" data-label="7.5m Turm"> <span>7.5m Turm</span></label>
+            <label class="checkbox-badge"><input type="checkbox" class="height-cb" value="10" data-label="10m Turm"> <span>10m Turm</span></label>
+            <label class="checkbox-badge"><input type="checkbox" class="height-cb" value="15" data-label="15m+ High Dive"> <span>15m+ High Dive</span></label>
+          </div>
+        </div>
+
+        <div class="modal-field">
+          <label>Spezielle Features (Wildcard)</label>
+          <div class="checkbox-grid">
+            <label class="checkbox-badge"><input type="checkbox" id="cbBubbleSystem"> <span>🫧 Bubble-Anlage</span></label>
+            <label class="checkbox-badge"><input type="checkbox" id="cbRopeSwing"> <span>攀 Rope Swing</span></label>
+            <label class="checkbox-badge"><input type="checkbox" id="cbTrampdive"> <span>🤸 Trampolin/Dive</span></label>
+          </div>
+        </div>
+
+        <div class="modal-field">
+          <label for="newSpotDescription">Beschreibung / Tipps (Optional)</label>
+          <textarea id="newSpotDescription" placeholder="Infos zu Eintritt, Öffnungszeiten, Wassertiefe..."></textarea>
+        </div>
+
+        <div class="modal-field">
+          <label for="spotImages">Bilder hochladen (Max. 3)</label>
+          <input type="file" id="spotImages" accept="image/*" multiple style="font-size: 11px; color: #94a3b8;" />
+          <div id="imagePreviewContainer" style="display: flex; gap: 8px; margin-top: 8px;"></div>
+        </div>
+
+        <div class="admin-notice">
+          <strong>Hinweis:</strong> Neue Spots werden nach einer kurzen Überprüfung freigeschaltet.
+        </div>
+
+        <button type="submit" id="submitSpotBtn" class="btn-submit-spot">SPOT EINREICHEN 🔥</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="reportModal" class="modal-overlay">
+    <div class="arcade-modal-style">
+      <button id="closeReportModalBtn" class="btn-close-sheet">&times;</button>
+      <h2 class="modal-heading" style="background: linear-gradient(135deg, #ef4444, #f59e0b); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">SPOT MELDEN</h2>
+      <p class="modal-sub">Stimmt etwas nicht mit diesem Eintrag?</p>
+
+      <form id="reportSpotForm">
+        <div class="modal-field">
+          <label for="reportReason">Grund der Meldung *</label>
+          <select id="reportReason" class="glass-select modal-select">
+            <option value="Falsche Informationen">Falsche Informationen / Daten</option>
+            <option value="Spot existiert nicht mehr">Spot existiert nicht mehr / Geschlossen</option>
+            <option value="Springen verboten">Springen streng verboten / Privatgelände</option>
+            <option value="Duplikat">Duplikat (Spot doppelt vorhanden)</option>
+            <option value="Sonstiges">Sonstiges</option>
+          </select>
+        </div>
+
+        <div class="modal-field">
+          <label for="reportDetails">Details / Anmerkungen</label>
+          <textarea id="reportDetails" placeholder="Beschreibe kurz, was korrigiert werden muss..."></textarea>
+        </div>
+
+        <button type="submit" class="btn-submit-spot" style="background: linear-gradient(135deg, #ef4444, #f59e0b);">MELDUNG ABSENDEN</button>
+      </form>
+    </div>
+  </div>
+
+  <div id="impressumModal" class="modal-overlay">
+    <div class="arcade-modal-style">
+      <button id="closeImpressumBtn" class="btn-close-sheet">&times;</button>
+      <h2 class="modal-heading">IMPRESSUM</h2>
+      <div style="font-size: 12px; color: #cbd5e1; line-height: 1.6; margin-top: 12px;">
+        <p>Angaben gemäß § 5 TMG</p><br>
+        <p><strong>Betreiber der Website:</strong><br>Cliffdiving Community Project<br>Musterstraße 123<br>12345 Musterstadt</p><br>
+        <p><strong>Kontakt:</strong><br>E-Mail: info@example.com</p>
+      </div>
+    </div>
+  </div>
+
+  <div id="privacyModal" class="modal-overlay">
+    <div class="arcade-modal-style">
+      <button id="closePrivacyBtn" class="btn-close-sheet">&times;</button>
+      <h2 class="modal-heading">DATENSCHUTZ</h2>
+      <div style="font-size: 12px; color: #cbd5e1; line-height: 1.6; margin-top: 12px;">
+        <p>Diese App nutzt OpenStreetMap & Leaflet zur Darstellung der Karte.</p><br>
+        <p>Es werden keine personenbezogenen Daten ohne Zustimmung gespeichert. Die Standorterfassung dient ausschließlich der Umkreissuche auf deinem Gerät.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="legal-footer">
+    <a href="#" id="openImpressumBtn" class="legal-link">Impressum</a>
+    <a href="#" id="openPrivacyBtn" class="legal-link">Datenschutz</a>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  <script src="map.js"></script>
+</body>
+</html>
