@@ -21,18 +21,14 @@ let activeSpotForReport = null;
 
 let allSpots = [];
 
-// Thrasher-W Icon für Spezialelemente
-const THRASHER_W_HTML = `<span class="thrasher-w-icon">W</span>`;
-
 document.addEventListener("DOMContentLoaded", () => {
-  // Loading Screen ausblenden
+  // Loading Screen nach Animation ausblenden
   setTimeout(() => {
     const loader = document.getElementById("loadingScreen");
     if (loader) loader.classList.add("fade-out");
   }, 3500);
 
   renderGraffitiTitle("Deine Location dabei?");
-  initWelcomeModal();
 
   // Karte initialisieren
   map = L.map("map", { zoomControl: false }).setView([51.1657, 10.4515], 6);
@@ -53,7 +49,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   drawGermanyOutline();
 
-  // Map Scroll / Zoom Handler
+  // === ERKENNUNG FÜR FREIES MAP-SCROLLEN ===
   map.on("dragstart", () => {
     resetSearchCenterState();
   });
@@ -62,7 +58,7 @@ document.addEventListener("DOMContentLoaded", () => {
     applyAllFilters();
   });
 
-  // Filter Event-Listener
+  // Event Listener für Filter
   document.getElementById("heightFilter").addEventListener("change", applyAllFilters);
   document.getElementById("typeFilter").addEventListener("change", applyAllFilters);
   document.getElementById("verifiedOnlyToggle").addEventListener("change", applyAllFilters);
@@ -87,7 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("closeSheetBtn").addEventListener("click", () => closeBottomSheet(true));
   
-  // Spot Modal Events
+  // Modal Öffnen / Schließen Events
   document.getElementById("openAddModalBtn").addEventListener("click", () => {
     removeTempMarker();
     tempSelectedLatLng = null;
@@ -113,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  // Rechtliches & Report Events
+  // RECHTLICHES & REPORT EVENTS
   const impressumBtn = document.getElementById("openImpressumBtn");
   if (impressumBtn) {
     impressumBtn.addEventListener("click", (e) => {
@@ -223,29 +219,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   loadSpotsFromSupabase();
 });
-
-// === WELCOME MODAL STEUERUNG ===
-function initWelcomeModal() {
-  const welcomeModal = document.getElementById("welcomeModal");
-  const closeBtn = document.getElementById("closeWelcomeBtn");
-  const startBtn = document.getElementById("startWelcomeBtn");
-
-  const hasSeenWelcome = localStorage.getItem("hasSeenWelcomeModal");
-
-  if (!hasSeenWelcome && welcomeModal) {
-    welcomeModal.classList.add("active");
-  }
-
-  function hideWelcome() {
-    if (welcomeModal) {
-      welcomeModal.classList.remove("active");
-      localStorage.setItem("hasSeenWelcomeModal", "true");
-    }
-  }
-
-  if (closeBtn) closeBtn.addEventListener("click", hideWelcome);
-  if (startBtn) startBtn.addEventListener("click", hideWelcome);
-}
 
 function resetSearchCenterState() {
   if (currentSearchCenter || radiusCircleLayer || centerPinMarker) {
@@ -618,6 +591,9 @@ function updateRadiusAndPin(lat, lng) {
   map.fitBounds(radiusCircleLayer.getBounds(), { padding: [30, 30] });
 }
 
+/* ==========================================
+   HELFER: ERSTELLUNG DER NEUEN 3D-MARKER
+   ========================================== */
 function create3DPinIcon(content, styleClass) {
   return L.divIcon({
     className: 'custom-3d-pin',
@@ -650,6 +626,23 @@ function hasWildcardFeature(spot) {
   );
 }
 
+// HQ THRASHER FLAME W AS HIGH-RES VECTOR SVG
+const THRASHER_W_SVG = `
+  <svg class="hq-thrasher-w" viewBox="0 0 100 100" width="24" height="24" style="vertical-align: middle; filter: drop-shadow(0px 2px 3px rgba(0,0,0,0.8));">
+    <defs>
+      <linearGradient id="thrasherGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#FFEE00"/>
+        <stop offset="45%" stop-color="#FF5500"/>
+        <stop offset="90%" stop-color="#D30000"/>
+      </linearGradient>
+    </defs>
+    <!-- Wildcard Flame-W Dynamic Vector -->
+    <path fill="url(#thrasherGrad)" stroke="#000000" stroke-width="4" stroke-linejoin="bevel"
+      d="M 10,22 Q 13,10 18,3 Q 22,17 26,24 Q 30,12 36,7 Q 40,20 44,38 L 47,38 Q 49,24 53,16 Q 58,28 60,38 L 63,38 Q 67,14 74,5 Q 77,20 80,30 Q 86,10 92,2 Q 88,25 84,45 L 70,95 L 53,95 L 47,56 L 43,56 L 31,95 L 14,95 L 2,42 Q 6,32 10,22 Z" />
+  </svg>
+`;
+
+// Haupt-Filterfunktion mit neuen 3D Arcade Markern
 function applyAllFilters() {
   const minHeight = parseFloat(document.getElementById("heightFilter").value) || 0;
   const type = document.getElementById("typeFilter").value;
@@ -691,8 +684,9 @@ function applyAllFilters() {
   filtered.forEach(spot => {
     const isWildcard = hasWildcardFeature(spot);
     
+    // Icon Content & Style-Zuweisung
     const pinClass = isWildcard ? "pin-wildcard" : getSpotPinClass(spot.type);
-    const pinContent = isWildcard ? THRASHER_W_HTML : `${spot.height}m`;
+    const pinContent = isWildcard ? THRASHER_W_SVG : `${spot.height}m`;
 
     const customIcon = create3DPinIcon(pinContent, pinClass);
     const marker = L.marker([spot.lat, spot.lng], { icon: customIcon });
@@ -752,7 +746,7 @@ async function handleAddSpotSubmit(e) {
   if (cbBubble && cbBubble.checked) selectedLabels.push("🫧 Bubble-Anlage");
 
   const cbRope = document.getElementById("cbRopeSwing");
-  if (cbRope && cbRope.checked) selectedLabels.push("攀 Rope Swing / Seilbahn");
+  if (cbRope && cbRope.checked) selectedLabels.push("🧗 Rope Swing / Seilbahn");
 
   const cbTramp = document.getElementById("cbTrampdive");
   if (cbTramp && cbTramp.checked) selectedLabels.push("🤸 Trampolin / Trampdive");
