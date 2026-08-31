@@ -401,6 +401,45 @@ body, html {
 }
 
 /* ==========================================
+   INFO POPUP OVERLAY (Nach Loading Screen)
+   ========================================== */
+.hero-text-overlay,
+.community-banner,
+.info-popup {
+  position: absolute;
+  top: 180px; /* Platziert das Info-Popup unterhalb der Suchleiste */
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 24px);
+  max-width: 420px;
+  z-index: 999;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 242, 254, 0.4);
+  border-radius: 16px;
+  padding: 14px 16px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  color: #ffffff;
+  pointer-events: auto;
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.info-popup .close-btn,
+.hero-text-overlay .close-btn {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: #00f2fe;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  padding: 4px;
+}
+
+/* ==========================================
    ARCADE BANNER (Mobile-Safe)
    ========================================== */
 .arcade-cta-card {
