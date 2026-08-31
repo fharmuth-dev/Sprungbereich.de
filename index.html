@@ -61,7 +61,7 @@
   <!-- Karte -->
   <div id="map"></div>
 
-  <!-- UI Panel -->
+  <!-- UI Panel (Suche & Filter) -->
   <div class="search-panel">
     <!-- Suche, Radius & Standort -->
     <div class="search-row">
@@ -149,6 +149,17 @@
         <a href="#" id="openImpressumBtn" style="color: #fff; text-decoration: underline; margin-right: 8px;">Impressum</a>
         <a href="#" id="openPrivacyBtn" style="color: #fff; text-decoration: underline;">Datenschutz</a>
       </div>
+    </div>
+  </div>
+
+  <!-- INFO POPUP OVERLAY (Schwebendes Hinweisfeld direkt unter dem UI-Panel) -->
+  <div id="infoPopup" class="info-popup">
+    <button class="close-btn" onclick="document.getElementById('infoPopup').style.display='none'">✕</button>
+    <div style="font-size: 13px; font-weight: bold; color: #00f2fe; margin-bottom: 4px;">
+      Willkommen bei Sprungbereich.de! 🌊
+    </div>
+    <div style="font-size: 11px; color: #cbd5e1; line-height: 1.4;">
+      Finde die besten Klippen-, Turm- und Spot-Locations in ganz Deutschland oder trage deine eigenen Geheimtipps ein.
     </div>
   </div>
 
@@ -250,7 +261,7 @@
           </div>
         </div>
 
-        <!-- NEU: Wildcard Special Features -->
+        <!-- Special Features / Wildcard -->
         <div class="modal-field">
           <label style="color: #f59e0b; font-weight: bold;">⭐ Special Features / Wildcard</label>
           <div class="checkbox-grid">
@@ -271,7 +282,7 @@
           </div>
         </div>
 
-        <!-- NEU: Beschreibung / Nutzertext -->
+        <!-- Beschreibung / Nutzertext -->
         <div class="modal-field">
           <label>Beschreibung & Infos zum Spot</label>
           <textarea id="newSpotDescription" rows="3" placeholder="z. B. Trampdive nur für Vereinsmitglieder nutzbar, 10m Turm schließt um 18 Uhr..." style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: #fff; font-family: inherit; resize: vertical;"></textarea>
@@ -366,7 +377,7 @@
       <h2 id="poolTitle">Badname</h2>
       <p id="poolType">Typ & Höhe</p>
 
-      <!-- NEU: Spot-Beschreibung anzeigen -->
+      <!-- Spot-Beschreibung anzeigen -->
       <p id="poolDescription" style="font-size: 13px; color: #ddd; background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; display: none; line-height: 1.4; border-left: 3px solid #00f2fe;"></p>
 
       <!-- Bildergalerie im Bottom Sheet -->
