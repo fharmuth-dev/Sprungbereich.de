@@ -1,394 +1,87 @@
-<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sprungbereich.de</title>
+document.addEventListener("DOMContentLoaded", () => {
+  // 1. DYNAMISCHES GRAFFITI-TITLE RENDERING
+  renderGraffitiTitle();
 
-  <!-- Google Fonts: Story Script & Sedgwick Ave -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Sedgwick+Ave&family=Story+Script&display=swap" rel="stylesheet">
+  // 2. LOADING SCREEN TIMEOUT & WELCOME MODAL TRIGGER
+  setTimeout(() => {
+    const loader = document.getElementById("loadingScreen");
+    if (loader) {
+      loader.classList.add("fade-out");
+    }
 
-  <!-- Leaflet CSS -->
-  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="style.css">
-  
-  <!-- Supabase JS Library -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-</head>
-<body>
+    // Welcome Modal einblenden (falls nicht bereits gesehen)
+    if (!localStorage.getItem("welcomeSeen")) {
+      const welcomeModal = document.getElementById("welcomeModal");
+      if (welcomeModal) {
+        welcomeModal.classList.add("active");
+      }
+    }
+  }, 3500);
 
-  <!-- Loading Screen -->
-  <div id="loadingScreen" class="loading-screen">
-    <div class="splash-content">
-      <h1 class="brand-title animated-title">Sprungbereich.de</h1>
-      <p class="brand-claim animated-claim">
-        Die intuitive Community Map für alle Turmspringer & Klippenspringer.
-      </p>
-      <div class="progress-bar-container">
-        <div class="progress-bar-fill"></div>
-      </div>
-    </div>
-  </div>
+  // 3. WELCOME MODAL CLOSE BUTTON EVENT
+  const closeWelcomeBtn = document.getElementById("closeWelcomeBtn");
+  if (closeWelcomeBtn) {
+    closeWelcomeBtn.addEventListener("click", () => {
+      const welcomeModal = document.getElementById("welcomeModal");
+      if (welcomeModal) {
+        welcomeModal.classList.remove("active");
+      }
+      localStorage.setItem("welcomeSeen", "true");
+    });
+  }
 
-  <!-- WELCOME ONBOARDING MODAL -->
-  <div id="welcomeModal" class="modal-overlay">
-    <div class="modal-card arcade-modal-style welcome-card">
-      <div class="welcome-header">
-        <h2 class="welcome-title">WHAT'S UP, DIVER! 💦</h2>
-        <span class="welcome-tag">COMMUNITY PROJECT</span>
-      </div>
-      
-      <div class="welcome-body">
-        <p>Willkommen auf der Spot-Map für <strong>Cliffdiver, Turmspringer & High Diver!</strong></p>
-        
-        <p>Hier droppen wir alle Locations in deiner Nähe – von Freibädern mit 10m-Turm bis hin zu wilden Klippen- & See-Spots mit Rope Swings oder Bubbles.</p>
-        
-        <div class="welcome-info-box">
-          <p>⚠️ <strong>Important Note:</strong> Das Teil lebt von der Crew! Wenn deine Local-Base am Anfang noch leer ist, liegt’s daran, dass wir gerade erst losmachen.</p>
-        </div>
+  // 4. IMPRESSUM & DATENSCHUTZ MODALS LOGIK
+  setupLegalModals();
+});
 
-        <p>Sei kein Zögerer: Trage deinen Secret Spot ein, korrigiere Infos und hilf mit, die beste Spot-Map aufzubauen.</p>
-      </div>
+// FUNKTION FÜR DAS REGISTRIEREN DER IMPRESSUM & DATENSCHUTZ MODALS
+function setupLegalModals() {
+  const openImpressumBtn = document.getElementById("openImpressumBtn");
+  const openPrivacyBtn = document.getElementById("openPrivacyBtn");
+  const impressumModal = document.getElementById("impressumModal");
+  const privacyModal = document.getElementById("privacyModal");
+  const closeImpressumBtn = document.getElementById("closeImpressumBtn");
+  const closePrivacyBtn = document.getElementById("closePrivacyBtn");
 
-      <button id="closeWelcomeBtn" class="btn-submit-spot welcome-btn">LETS GO & SPOTTEN 🔥</button>
-    </div>
-  </div>
+  if (openImpressumBtn && impressumModal) {
+    openImpressumBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      impressumModal.classList.add("active");
+    });
+  }
 
-  <!-- Karte -->
-  <div id="map"></div>
+  if (openPrivacyBtn && privacyModal) {
+    openPrivacyBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      privacyModal.classList.add("active");
+    });
+  }
 
-  <!-- UI Panel -->
-  <div class="search-panel">
-    <!-- Suche, Radius & Standort -->
-    <div class="search-row">
-      <div class="field-group flex-grow">
-        <span class="field-label">Ort / PLZ</span>
-        <input type="text" id="searchInput" value="10117" placeholder="z. B. 10117 oder Berlin">
-      </div>
-      
-      <div class="field-group">
-        <span class="field-label">Radius</span>
-        <select id="radiusFilter" class="glass-select">
-          <option value="10">10 km</option>
-          <option value="25" selected>25 km</option>
-          <option value="50">50 km</option>
-          <option value="100">100 km</option>
-        </select>
-      </div>
+  if (closeImpressumBtn && impressumModal) {
+    closeImpressumBtn.addEventListener("click", () => {
+      impressumModal.classList.remove("active");
+    });
+  }
 
-      <!-- GPS Standort Button -->
-      <button id="locateBtn" class="btn-search-glow" title="Mein Standort" style="background: linear-gradient(135deg, #10b981, #059669);">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
-      </button>
+  if (closePrivacyBtn && privacyModal) {
+    closePrivacyBtn.addEventListener("click", () => {
+      privacyModal.classList.remove("active");
+    });
+  }
+}
 
-      <button id="searchBtn" class="btn-search-glow" title="Suchen">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-      </button>
-    </div>
+// FUNKTION FÜR GRAFFITI TITLE ANIMATION/STYLE
+function renderGraffitiTitle() {
+  const container = document.getElementById("dynamicGraffitiTitle");
+  if (!container) return;
 
-    <!-- Filter Zeile -->
-    <div class="filter-row">
-      <div class="field-group flex-1">
-        <span class="field-label">Mindest-Sprunghöhe</span>
-        <select id="heightFilter" class="glass-select">
-          <option value="0">Alle Höhen</option>
-          <option value="1">Ab 1m Brett</option>
-          <option value="3">Ab 3m Turm</option>
-          <option value="5">Ab 5m Turm</option>
-          <option value="7.5">Ab 7.5m Turm</option>
-          <option value="10">🔥 Ab 10m Profi-Turm</option>
-        </select>
-      </div>
+  const text = "SPOT DROPPEN";
+  container.innerHTML = "";
 
-      <div class="field-group flex-1">
-        <span class="field-label">Spot-Kategorie</span>
-        <select id="typeFilter" class="glass-select">
-          <option value="all">Alle Arten</option>
-          <option value="Freibad">Freibad</option>
-          <option value="Hallenbad">Hallenbad</option>
-          <option value="Frei- und Hallenbad">Frei- und Hallenbad</option>
-          <option value="See">See / Klippe</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- Farb-Legende inkl. Wildcard -->
-    <div class="legend-row">
-      <div class="legend-item">
-        <span class="dot dot-freibad"></span>
-        <span class="legend-text">Freibad</span>
-      </div>
-      <div class="legend-item">
-        <span class="dot dot-hallenbad"></span>
-        <span class="legend-text">Hallenbad</span>
-      </div>
-      <div class="legend-item">
-        <span class="dot dot-see"></span>
-        <span class="legend-text">See / Klippe</span>
-      </div>
-      <div class="legend-item" title="Besondere Highlights wie Bubble-Anlage, Rope Swing oder Trampoline">
-        <span class="dot-wildcard" style="background: linear-gradient(135deg, #f59e0b, #ef4444); color: #fff; font-weight: bold; font-size: 10px; width: 16px; height: 16px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 0 8px rgba(245, 158, 11, 0.8);">W</span>
-        <span class="legend-text" style="font-weight: bold; color: #f59e0b;">Wildcard</span>
-      </div>
-    </div>
-
-    <!-- Footer Toggle & Rechtslinks -->
-    <div class="filter-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
-      <label class="toggle-container">
-        <input type="checkbox" id="verifiedOnlyToggle">
-        <span class="toggle-custom"></span>
-        <span class="toggle-text">Nur verifizierte Spots</span>
-      </label>
-
-      <!-- Links für Impressum & Datenschutz -->
-      <div class="legal-links" style="font-size: 11px; opacity: 0.7;">
-        <a href="#" id="openImpressumBtn" style="color: #fff; text-decoration: underline; margin-right: 8px;">Impressum</a>
-        <a href="#" id="openPrivacyBtn" style="color: #fff; text-decoration: underline;">Datenschutz</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- ARCADE / DIVE COMMUNITY BANNER -->
-  <div class="arcade-cta-card" id="openAddModalBtn">
-    <div class="arcade-content">
-      <div class="arcade-title" id="dynamicGraffitiTitle">
-        <!-- Dynamische Rainbow-Buchstaben -->
-      </div>
-      <p class="arcade-sub">Trage deinen Spot ein & mach die Map voll!</p>
-    </div>
-    <div class="arcade-btn-wrapper">
-      <span class="arcade-btn-glow">+ JETZT DROP PEN!</span>
-    </div>
-  </div>
-
-  <!-- ADD SPOT MODAL (Popup Formular) -->
-  <div id="addSpotModal" class="modal-overlay">
-    <div class="modal-card arcade-modal-style" style="max-height: 90vh; overflow-y: auto;">
-      <button id="closeAddModalBtn" class="btn-close-sheet" title="Schließen">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-      </button>
-
-      <h2 class="modal-heading">NEUEN SPOT DROPPEN</h2>
-      <p class="modal-sub">Trage die Infos deiner Sprunganlage ein:</p>
-
-      <form id="addSpotForm">
-        <div class="modal-field">
-          <label>Name des Bades / Spots</label>
-          <input type="text" id="newSpotName" placeholder="z. B. Stadionbad Ulm" required>
-        </div>
-
-        <div class="modal-field">
-          <label>Ort / Stadt</label>
-          <input type="text" id="newSpotCity" placeholder="z. B. Ulm" required>
-        </div>
-
-        <div class="modal-field">
-          <label>Straße & Hausnummer (Optional)</label>
-          <input type="text" id="newSpotStreet" placeholder="z. B. Stadionstraße 5">
-        </div>
-
-        <div class="modal-field">
-          <label>Genaue Adresse bekannt?</label>
-          <button type="button" id="pickOnMapBtn" style="width:100%; padding: 10px; background: rgba(0, 242, 254, 0.15); border: 1px solid #00f2fe; color: #00f2fe; border-radius: 8px; font-weight: bold; cursor: pointer;">
-            Auf Karte markieren
-          </button>
-          <small id="locationStatusText" style="display: block; font-size: 11px; color: #10b981; margin-top: 4px;"></small>
-        </div>
-
-        <div class="modal-field">
-          <label>Kategorie</label>
-          <select id="newSpotType" class="glass-select modal-select" required>
-            <option value="Freibad">Freibad</option>
-            <option value="Hallenbad">Hallenbad</option>
-            <option value="Frei- und Hallenbad">Frei- und Hallenbad</option>
-            <option value="See">See / Klippe</option>
-          </select>
-        </div>
-
-        <!-- Sprunganlagen / Höhen -->
-        <div class="modal-field">
-          <label>Vorhandene Sprungelemente (Mehrfachauswahl)</label>
-          <div class="checkbox-grid">
-            <label class="checkbox-badge">
-              <input type="checkbox" class="height-cb" value="1" data-label="1m Brett/Block">
-              <span>1m Brett / Block</span>
-            </label>
-
-            <label class="checkbox-badge">
-              <input type="checkbox" class="height-cb" value="2" data-label="2m Brett/Plattform">
-              <span>2m Brett / Plattform</span>
-            </label>
-
-            <label class="checkbox-badge">
-              <input type="checkbox" class="height-cb" value="3" data-label="3m Brett/Turm">
-              <span>3m Brett / Turm</span>
-            </label>
-
-            <label class="checkbox-badge">
-              <input type="checkbox" class="height-cb" value="5" data-label="5m Turm">
-              <span>5m Turm</span>
-            </label>
-
-            <label class="checkbox-badge">
-              <input type="checkbox" class="height-cb" value="7.5" data-label="7.5m Turm">
-              <span>7.5m Turm</span>
-            </label>
-
-            <label class="checkbox-badge">
-              <input type="checkbox" class="height-cb" value="10" data-label="10m Profi-Turm">
-              <span>10m Profi-Turm</span>
-            </label>
-
-            <label class="checkbox-badge">
-              <input type="checkbox" class="height-cb" value="15" data-label="15m+ Klippe/High-Dive">
-              <span>15m+ Klippe / High-Dive</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- NEU: Wildcard Special Features -->
-        <div class="modal-field">
-          <label style="color: #f59e0b; font-weight: bold;">⭐ Special Features / Wildcard</label>
-          <div class="checkbox-grid">
-            <label class="checkbox-badge" style="border-color: rgba(245, 158, 11, 0.4);">
-              <input type="checkbox" id="cbBubbleSystem" class="wildcard-cb" value="bubble">
-              <span>🫧 Bubble-Anlage</span>
-            </label>
-
-            <label class="checkbox-badge" style="border-color: rgba(245, 158, 11, 0.4);">
-              <input type="checkbox" id="cbRopeSwing" class="wildcard-cb" value="rope_swing">
-              <span>🧗 Rope Swing / Seilbahn</span>
-            </label>
-
-            <label class="checkbox-badge" style="border-color: rgba(245, 158, 11, 0.4);">
-              <input type="checkbox" id="cbTrampdive" class="wildcard-cb" value="trampdive">
-              <span>🤸 Trampolin / Trampdive</span>
-            </label>
-          </div>
-        </div>
-
-        <!-- NEU: Beschreibung / Nutzertext -->
-        <div class="modal-field">
-          <label>Beschreibung & Infos zum Spot</label>
-          <textarea id="newSpotDescription" rows="3" placeholder="z. B. Trampdive nur für Vereinsmitglieder nutzbar, 10m Turm schließt um 18 Uhr..." style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: #fff; font-family: inherit; resize: vertical;"></textarea>
-        </div>
-
-        <!-- Fotos hochladen -->
-        <div class="modal-field">
-          <label>Fotos hinzufügen (Max. 3 Bilder)</label>
-          <input type="file" id="spotImages" accept="image/*" multiple style="width: 100%; padding: 8px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: #fff;">
-          <div id="imagePreviewContainer" style="display: flex; gap: 8px; margin-top: 8px; flex-wrap: wrap;"></div>
-        </div>
-
-        <p class="admin-notice">
-          ℹ️ <strong>Hinweis:</strong> Nach dem Eintragen wird dein Spot in der Datenbank gespeichert und nach einer Prüfung durch den Admin freigeschaltet.
-        </p>
-
-        <button type="submit" id="submitSpotBtn" class="btn-submit-spot">SPOT HINZUFÜGEN</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- MODAL - KORREKTUR / ÄNDERUNG MELDEN -->
-  <div id="reportModal" class="modal-overlay">
-    <div class="modal-card arcade-modal-style">
-      <button id="closeReportModalBtn" class="btn-close-sheet" title="Schließen">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-      </button>
-
-      <h2 class="modal-heading">KORREKTUR MELDEN</h2>
-      <p class="modal-sub" id="reportSpotTitleSub">Spot-Anpassung einreichen</p>
-
-      <form id="reportSpotForm">
-        <input type="hidden" id="reportSpotId">
-
-        <div class="modal-field">
-          <label>Grund der Änderung</label>
-          <select id="reportReason" class="glass-select modal-select" required>
-            <option value="Falsche Höhenangabe">Sprunghöhen / Türme stimmen nicht</option>
-            <option value="Falscher Name/Adresse">Name oder Adresse ist falsch</option>
-            <option value="Dauerhaft geschlossen">Bad / Spot dauerhaft geschlossen</option>
-            <option value="Sonstiges">Sonstiges</option>
-          </select>
-        </div>
-
-        <div class="modal-field">
-          <label>Beschreibung der Korrektur</label>
-          <textarea id="reportDescription" rows="4" placeholder="Beschreibe kurz, was geändert werden muss (z. B. 'Der 10m Turm ist gesperrt, dafür gibt es jetzt ein 3m Brett')..." required style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: #fff; font-family: inherit; resize: vertical;"></textarea>
-        </div>
-
-        <button type="submit" id="submitReportBtn" class="btn-submit-spot" style="background: linear-gradient(135deg, #f59e0b, #d97706);">KORREKTUR ABSENDEN</button>
-      </form>
-    </div>
-  </div>
-
-  <!-- MODAL - IMPRESSUM -->
-  <div id="impressumModal" class="modal-overlay">
-    <div class="modal-card arcade-modal-style" style="max-height: 80vh; overflow-y: auto;">
-      <button id="closeImpressumBtn" class="btn-close-sheet" title="Schließen">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-      </button>
-      <h2 class="modal-heading">IMPRESSUM</h2>
-      <div style="font-size: 13px; line-height: 1.6; opacity: 0.9;">
-        <p><strong>Angaben gemäß § 5 TMG:</strong></p>
-        <p>Max Mustermann<br>Musterstraße 123<br>12345 Musterstadt</p>
-        <p><strong>Kontakt:</strong><br>E-Mail: info@sprungbereich.de</p>
-        <p><strong>Haftung für Inhalte:</strong><br>Als Diensteanbieter sind wir gemäß § 7 Abs.1 TMG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich...</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- MODAL - DATENSCHUTZ -->
-  <div id="privacyModal" class="modal-overlay">
-    <div class="modal-card arcade-modal-style" style="max-height: 80vh; overflow-y: auto;">
-      <button id="closePrivacyBtn" class="btn-close-sheet" title="Schließen">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-      </button>
-      <h2 class="modal-heading">DATENSCHUTZ</h2>
-      <div style="font-size: 13px; line-height: 1.6; opacity: 0.9;">
-        <p><strong>1. Datenschutz auf einen Blick</strong><br>Wir nehmen den Schutz Deiner persönlichen Daten sehr ernst. Personenbezogene Daten werden auf dieser Webseite nur im notwendigen Umfang verarbeitet.</p>
-        <p><strong>2. Erfassung von Geodaten</strong><br>Diese Anwendung nutzt die GPS-Funktion Deines Endgeräts nur nach ausdrücklicher Freigabe, um Deinen Standort auf der Karte anzuzeigen und nahegelegene Spots zu berechnen.</p>
-        <p><strong>3. Drittanbieter-Dienste</strong><br>Zur Bereitstellung der Kartendaten und Geocoding nutzen wir Leaflet, Nominatim (OpenStreetMap) und Supabase für die Datenbank-Speicherung.</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- Bottom Sheet (Detail-Panel) -->
-  <div id="bottomSheet" class="bottom-sheet">
-    <button id="closeSheetBtn" class="btn-close-sheet" title="Schließen">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-    </button>
-    <div class="sheet-content">
-      <h2 id="poolTitle">Badname</h2>
-      <p id="poolType">Typ & Höhe</p>
-
-      <!-- NEU: Spot-Beschreibung anzeigen -->
-      <p id="poolDescription" style="font-size: 13px; color: #ddd; background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; display: none; line-height: 1.4; border-left: 3px solid #00f2fe;"></p>
-
-      <!-- Bildergalerie im Bottom Sheet -->
-      <div id="poolGallery" class="pool-gallery" style="display: flex; gap: 8px; margin-bottom: 12px; overflow-x: auto;"></div>
-
-      <div id="poolFacilities" class="facilities-list"></div>
-      
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 10px;">
-        <span id="verifiedBadge" class="badge">Status</span>
-        
-        <!-- Button für Korrektur-Meldung -->
-        <button id="openReportBtn" style="background: transparent; border: 1px solid rgba(255,255,255,0.3); color: #ccc; border-radius: 6px; padding: 4px 8px; font-size: 11px; cursor: pointer;">
-          ✏️ Änderung melden
-        </button>
-      </div>
-
-      <div class="sheet-actions" style="margin-top: 15px;">
-        <a id="navBtn" href="#" target="_blank" class="btn-nav">Route starten</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- Scripts -->
-  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="map.js"></script>
-</body>
-</html>
+  text.split("").forEach((char) => {
+    const span = document.createElement("span");
+    span.className = "g-letter";
+    span.textContent = char === " " ? "\u00A0" : char;
+    container.appendChild(span);
+  });
+}
