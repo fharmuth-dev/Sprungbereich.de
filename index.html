@@ -12,7 +12,7 @@
 
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="style.css">
   
   <!-- Supabase JS Library -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -41,17 +41,17 @@
       </div>
       
       <div class="welcome-body">
-        <p>Hey! Das hier ist ein <strong>Community-Projekt für Turmspringer, Klippenspringer, High Diver</strong> und alle, die Bock auf geile Spots haben.</p>
+        <p>Hey! Das hier ist ein reines <strong>Community-Projekt für Turmspringer, Klippenspringer, High Diver</strong> und alle, die gerne hoch hinauswollen.</p>
         
-        <p>Auf dieser intuitiven Map siehst du deine nahegelegenen Locations. Selbstverständlich kannst du auch jederzeit <strong>Änderungen vornehmen oder eine neue Location einreichen.</strong></p>
+        <p>Auf dieser intuitiven Map siehst du direkt deine nahegelegenen Locations – von Freibädern mit Turm bis zu wilden Klippen-Spots.</p>
         
         <div class="welcome-info-box">
           <p>⚠️ <strong>Wie der Name schon sagt:</strong> Es ist ein Community-Projekt. Am Anfang kann es daher natürlich sein, dass noch nicht so viele Einträge vorhanden sind.</p>
         </div>
 
-        <p>Vielleicht hilfst du also mit und trägst direkt deinen Spot ein? Drop deinen Local-Spot rein und mach die Map voll!</p>
-
-        <p style="font-size: 11px; opacity: 0.7; margin-top: 10px;">ℹ️ <em>Zero Tracking-Cookies. Wir nutzen nur technisch notwendige Speicherungen. Details im Datenschutz.</em></p>
+        <p>Vielleicht hilfst du also direkt mit? Selbstverständlich kannst du jederzeit <strong>neue Locations einreichen oder Änderungen vornehmen</strong>, falls Infos nicht mehr stimmen. Drop deinen Local-Spot rein!</p>
+        
+        <p style="font-size: 11px; opacity: 0.7; margin-top: 10px;">ℹ️ <em>Zero Tracking-Cookies. Wir nutzen nur technisch notwendige Speicherungen.</em></p>
       </div>
 
       <button id="closeWelcomeBtn" class="btn-submit-spot welcome-btn">OK, LETS GO! 🔥</button>
@@ -61,7 +61,7 @@
   <!-- Karte -->
   <div id="map"></div>
 
-  <!-- UI Panel (Suche & Filter) -->
+  <!-- UI Panel -->
   <div class="search-panel">
     <!-- Suche, Radius & Standort -->
     <div class="search-row">
@@ -149,17 +149,6 @@
         <a href="#" id="openImpressumBtn" style="color: #fff; text-decoration: underline; margin-right: 8px;">Impressum</a>
         <a href="#" id="openPrivacyBtn" style="color: #fff; text-decoration: underline;">Datenschutz</a>
       </div>
-    </div>
-  </div>
-
-  <!-- INFO POPUP OVERLAY (Schwebendes Hinweisfeld direkt unter dem UI-Panel) -->
-  <div id="infoPopup" class="info-popup">
-    <button class="close-btn" onclick="document.getElementById('infoPopup').style.display='none'">✕</button>
-    <div style="font-size: 13px; font-weight: bold; color: #00f2fe; margin-bottom: 4px;">
-      Willkommen bei Sprungbereich.de! 🌊
-    </div>
-    <div style="font-size: 11px; color: #cbd5e1; line-height: 1.4;">
-      Finde die besten Klippen-, Turm- und Spot-Locations in ganz Deutschland oder trage deine eigenen Geheimtipps ein.
     </div>
   </div>
 
@@ -261,7 +250,7 @@
           </div>
         </div>
 
-        <!-- Special Features / Wildcard -->
+        <!-- NEU: Wildcard Special Features -->
         <div class="modal-field">
           <label style="color: #f59e0b; font-weight: bold;">⭐ Special Features / Wildcard</label>
           <div class="checkbox-grid">
@@ -282,7 +271,7 @@
           </div>
         </div>
 
-        <!-- Beschreibung / Nutzertext -->
+        <!-- NEU: Beschreibung / Nutzertext -->
         <div class="modal-field">
           <label>Beschreibung & Infos zum Spot</label>
           <textarea id="newSpotDescription" rows="3" placeholder="z. B. Trampdive nur für Vereinsmitglieder nutzbar, 10m Turm schließt um 18 Uhr..." style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: #fff; font-family: inherit; resize: vertical;"></textarea>
@@ -377,7 +366,7 @@
       <h2 id="poolTitle">Badname</h2>
       <p id="poolType">Typ & Höhe</p>
 
-      <!-- Spot-Beschreibung anzeigen -->
+      <!-- NEU: Spot-Beschreibung anzeigen -->
       <p id="poolDescription" style="font-size: 13px; color: #ddd; background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; display: none; line-height: 1.4; border-left: 3px solid #00f2fe;"></p>
 
       <!-- Bildergalerie im Bottom Sheet -->
@@ -402,7 +391,7 @@
 
   <!-- Scripts -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="map.js"></script>
   <script src="app.js"></script>
+  <script src="map.js"></script>
 </body>
 </html>
