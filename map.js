@@ -220,7 +220,6 @@ document.addEventListener("DOMContentLoaded", () => {
   loadSpotsFromSupabase();
 });
 
-// Setzt die fixe Radiussuche zurück, sobald der Nutzer frei scrollt
 function resetSearchCenterState() {
   if (currentSearchCenter || radiusCircleLayer || centerPinMarker) {
     currentSearchCenter = null;
@@ -627,6 +626,22 @@ function hasWildcardFeature(spot) {
   );
 }
 
+// HQ THRASHER FLAME W AS HIGH-RES VECTOR SVG
+const THRASHER_W_SVG = `
+  <svg class="hq-thrasher-w" viewBox="0 0 100 100" width="24" height="24" style="vertical-align: middle; filter: drop-shadow(0px 2px 3px rgba(0,0,0,0.8));">
+    <defs>
+      <linearGradient id="thrasherGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#FFEE00"/>
+        <stop offset="45%" stop-color="#FF5500"/>
+        <stop offset="90%" stop-color="#D30000"/>
+      </linearGradient>
+    </defs>
+    <!-- Wildcard Flame-W Dynamic Vector -->
+    <path fill="url(#thrasherGrad)" stroke="#000000" stroke-width="4" stroke-linejoin="bevel"
+      d="M 10,22 Q 13,10 18,3 Q 22,17 26,24 Q 30,12 36,7 Q 40,20 44,38 L 47,38 Q 49,24 53,16 Q 58,28 60,38 L 63,38 Q 67,14 74,5 Q 77,20 80,30 Q 86,10 92,2 Q 88,25 84,45 L 70,95 L 53,95 L 47,56 L 43,56 L 31,95 L 14,95 L 2,42 Q 6,32 10,22 Z" />
+  </svg>
+`;
+
 // Haupt-Filterfunktion mit neuen 3D Arcade Markern
 function applyAllFilters() {
   const minHeight = parseFloat(document.getElementById("heightFilter").value) || 0;
@@ -671,7 +686,7 @@ function applyAllFilters() {
     
     // Icon Content & Style-Zuweisung
     const pinClass = isWildcard ? "pin-wildcard" : getSpotPinClass(spot.type);
-    const pinContent = isWildcard ? "🔥" : `${spot.height}m`;
+    const pinContent = isWildcard ? THRASHER_W_SVG : `${spot.height}m`;
 
     const customIcon = create3DPinIcon(pinContent, pinClass);
     const marker = L.marker([spot.lat, spot.lng], { icon: customIcon });
