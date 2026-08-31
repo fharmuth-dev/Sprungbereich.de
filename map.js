@@ -7,7 +7,6 @@ const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_
 
 let map;
 let markersGroup;
-let countryBorderLayer = null;
 let radiusCircleLayer = null;
 let centerPinMarker = null;
 let currentSearchCenter = null;
@@ -30,8 +29,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   renderGraffitiTitle("Deine Location dabei?");
 
-  // Karte initialisieren
-  map = L.map("map", { zoomControl: false }).setView([51.1657, 10.4515], 6);
+  // Geografische Begrenzung für Deutschland
+  const germanyBounds = L.latLngBounds(
+    L.latLng(47.2701, 5.8663),  // Südwest-Koordinate
+    L.latLng(55.0581, 15.0419)  // Nordost-Koordinate
+  );
+
+  // Karte initialisieren mit Begrenzung auf Deutschland
+  map = L.map("map", { 
+    zoomControl: false,
+    minZoom: 6,
+    maxZoom: 16,
+    maxBounds: germanyBounds,
+    maxBoundsViscosity: 1.0
+  }).setView([51.1657, 10.4515], 6);
 
   // Esri Dark Map Tiles
   L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
@@ -46,8 +57,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
   markersGroup = L.layerGroup().addTo(map);
   L.control.zoom({ position: 'bottomright' }).addTo(map);
-
-  drawGermanyOutline();
 
   // === ERKENNUNG FÜR FREIES MAP-SCROLLEN ===
   map.on("dragstart", () => {
@@ -529,25 +538,6 @@ function renderGraffitiTitle(text) {
 
     container.appendChild(span);
   });
-}
-
-function drawGermanyOutline() {
-  fetch(`https://nominatim.openstreetmap.org/search?format=json&polygon_geojson=1&country=Germany&limit=1`)
-    .then(res => res.json())
-    .then(data => {
-      if (data && data[0] && data[0].geojson) {
-        countryBorderLayer = L.geoJSON(data[0].geojson, {
-          style: {
-            color: "#00f2fe",
-            weight: 2,
-            opacity: 0.6,
-            fillColor: "#00f2fe",
-            fillOpacity: 0.03
-          },
-          interactive: false
-        }).addTo(map);
-      }
-    });
 }
 
 function getDistanceInKm(lat1, lon1, lat2, lon2) {
