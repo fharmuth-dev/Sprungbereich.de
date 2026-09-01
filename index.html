@@ -5,6 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sprungbereich.de</title>
 
+  <!-- PWA: Manifest, Icons & Theme-Farbe -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="images/favicon.png" type="image/png">
+  <link rel="apple-touch-icon" href="images/icon-192.png">
+  <meta name="theme-color" content="#0b1120">
+
   <!-- Google Fonts: Story Script & Sedgwick Ave -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -393,5 +399,15 @@
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="app.js"></script>
   <script src="map.js"></script>
+  <script>
+    // Service Worker für Offline-Unterstützung registrieren
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("sw.js").catch(err => {
+          console.warn("Service Worker konnte nicht registriert werden:", err);
+        });
+      });
+    }
+  </script>
 </body>
 </html>
