@@ -352,14 +352,16 @@
       <button id="closeImpressumBtn" class="btn-close-sheet" title="Schließen">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
-   <div style="font-size: 13px; line-height: 1.6; opacity: 0.9;">
-  <p><strong>Angaben gemäß § 5 TMG:</strong></p>
-  <p>Fabian Harmuth<br>Schneckweg 1<br>89079 Ulm</p>
-  <p><strong>Kontakt:</strong><br>E-Mail: fabianharmuth2@gmail.com</p>
-  <p><strong>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV:</strong><br>Fabian Harmuth (Anschrift wie oben)</p>
-  <p><strong>Haftung für Inhalte:</strong><br>Als Diensteanbieter bin ich gemäß § 7 Abs. 1 TMG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich. Für nutzergenerierte Inhalte (eingereichte Spots) gelten die §§ 8 bis 10 TMG – diese werden vor Veröffentlichung geprüft, eine Haftung für bereits vor Prüfung erkennbare Rechtsverletzungen bleibt unberührt.</p>
-  <p><strong>Haftung für Links:</strong><br>Diese Website enthält ggf. Links zu externen Webseiten Dritter (z. B. Bäder-Webseiten), auf deren Inhalte kein Einfluss besteht. Für diese fremden Inhalte kann keine Gewähr übernommen werden; es gilt stets der Inhalt der jeweils verlinkten Seite zum Zeitpunkt der Verlinkung.</p>
-</div>
+      <h2 class="modal-heading">IMPRESSUM</h2>
+      <div style="font-size: 13px; line-height: 1.6; opacity: 0.9;">
+        <p><strong>Angaben gemäß § 5 TMG:</strong></p>
+        <p>Fabian Harmuth<br>Schneckweg 1<br>89079 Ulm</p>
+        <p><strong>Kontakt:</strong><br>E-Mail: fabianharmuth2@gmail.com</p>
+        <p><strong>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV:</strong><br>Fabian Harmuth (Anschrift wie oben)</p>
+        <p><strong>Haftung für Inhalte:</strong><br>Als Diensteanbieter bin ich gemäß § 7 Abs. 1 TMG für eigene Inhalte auf diesen Seiten nach den allgemeinen Gesetzen verantwortlich. Für nutzergenerierte Inhalte (eingereichte Spots) gelten die §§ 8 bis 10 TMG – diese werden vor Veröffentlichung geprüft, eine Haftung für bereits vor Prüfung erkennbare Rechtsverletzungen bleibt unberührt.</p>
+        <p><strong>Haftung für Links:</strong><br>Diese Website enthält ggf. Links zu externen Webseiten Dritter (z. B. Bäder-Webseiten), auf deren Inhalte kein Einfluss besteht. Für diese fremden Inhalte kann keine Gewähr übernommen werden; es gilt stets der Inhalt der jeweils verlinkten Seite zum Zeitpunkt der Verlinkung.</p>
+      </div>
+    </div>
   </div>
 
   <!-- MODAL - DATENSCHUTZ -->
@@ -369,10 +371,26 @@
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
       </button>
       <h2 class="modal-heading">DATENSCHUTZ</h2>
-      <div style="font-size: 13px; line-height: 1.6; opacity: 0.9;">
-        <p><strong>1. Datenschutz auf einen Blick</strong><br>Wir nehmen den Schutz Deiner persönlichen Daten sehr ernst. Personenbezogene Daten werden auf dieser Webseite nur im notwendigen Umfang verarbeitet.</p>
-        <p><strong>2. Erfassung von Geodaten</strong><br>Diese Anwendung nutzt die GPS-Funktion Deines Endgeräts nur nach ausdrücklicher Freigabe, um Deinen Standort auf der Karte anzuzeigen und nahegelegene Spots zu berechnen.</p>
-        <p><strong>3. Drittanbieter-Dienste</strong><br>Zur Bereitstellung der Kartendaten und Geocoding nutzen wir Leaflet, Nominatim (OpenStreetMap) und Supabase für die Datenbank-Speicherung.</p>
+      <div style="font-size: 12.5px; line-height: 1.6; opacity: 0.9;">
+        <p><strong>1. Verantwortlicher</strong><br>Verantwortlich für die Datenverarbeitung auf dieser Website ist:<br>Fabian Harmuth, Schneckweg 1, 89079 Ulm, E-Mail: fabianharmuth2@gmail.com.</p>
+
+        <p><strong>2. Hosting (Strato)</strong><br>Diese Website wird bei der Strato AG (Pascalstraße 10, 10587 Berlin) gehostet. Strato verarbeitet dabei automatisch technische Zugriffsdaten (sog. Server-Logfiles), z. B. IP-Adresse, Datum und Uhrzeit des Zugriffs, aufgerufene Datei, übertragene Datenmenge sowie Browser- und Betriebssystem-Informationen. Diese Daten werden ausschließlich zur Sicherstellung eines störungsfreien Betriebs sowie zur Abwehr von Missbrauch verarbeitet (Rechtsgrundlage: Art. 6 Abs. 1 lit. f DSGVO) und nicht mit anderen Datenquellen zusammengeführt. Mit Strato besteht ein Vertrag zur Auftragsverarbeitung gemäß Art. 28 DSGVO.</p>
+
+        <p><strong>3. Kartendarstellung (Leaflet, Esri, Nominatim/OpenStreetMap)</strong><br>Zur Darstellung der interaktiven Karte wird die Open-Source-Bibliothek <strong>Leaflet</strong> eingebunden (geladen über das CDN unpkg.com). Die Kartenkacheln (Bild-Hintergrund der Karte) werden dabei live von <strong>Esri (ArcGIS Online)</strong> nachgeladen. Für die Orts- und Adresssuche sowie die automatische Adressermittlung bei der Standortauswahl wird der Geocoding-Dienst <strong>Nominatim</strong> der OpenStreetMap Foundation angefragt. Bei jeder dieser Anfragen wird technisch bedingt deine IP-Adresse an den jeweiligen Anbieter (unpkg.com/Cloudflare, Esri Inc., OpenStreetMap Foundation) übermittelt, da sonst keine Kartendarstellung bzw. Ortssuche möglich ist. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (berechtigtes Interesse an einer funktionierenden Kartenanzeige). Es handelt sich um eigenständige Drittanbieter außerhalb meines Einflussbereichs; es gelten deren jeweilige Datenschutzbestimmungen.</p>
+
+        <p><strong>4. Standortermittlung (GPS)</strong><br>Der Button „Mein Standort" nutzt die Geolocation-Funktion deines Endgeräts, um deinen aktuellen Standort auf der Karte anzuzeigen und nahegelegene Spots zu berechnen. Dies geschieht ausschließlich nach ausdrücklicher Freigabe durch dich im Browser (Rechtsgrundlage: Art. 6 Abs. 1 lit. a DSGVO, Einwilligung) und wird nicht dauerhaft gespeichert oder an mich übertragen – die Berechnung erfolgt lokal in deinem Browser.</p>
+
+        <p><strong>5. Datenbank & Formulare (Supabase)</strong><br>Zur Speicherung der Spot-Daten (eingetragene Bäder/Spots inkl. Name, Ort, Koordinaten, Beschreibung, optionaler Website-Link) sowie eingereichter Korrektur-Meldungen nutze ich <strong>Supabase</strong> (Supabase Inc.) als Backend-Datenbank. Beim Absenden des „Spot hinzufügen"- oder „Korrektur melden"-Formulars werden die von dir eingegebenen Angaben an Supabase übermittelt und dort gespeichert. Persönliche Daten des Einsenders (Name, Kontaktdaten) werden dabei nicht abgefragt. Rechtsgrundlage ist Art. 6 Abs. 1 lit. a DSGVO (Einwilligung durch aktives Absenden des Formulars). Neu eingereichte Spots werden vor Veröffentlichung manuell geprüft. Details zur Datenverarbeitung durch Supabase findest du in der Datenschutzerklärung von Supabase unter supabase.com/privacy.</p>
+
+        <p><strong>6. Google Fonts</strong><br>Diese Website bindet Schriftarten von <strong>Google Fonts</strong> ein, die von Servern von Google (Google Ireland Ltd. bzw. Google LLC) geladen werden. Dabei wird deine IP-Adresse an Google übermittelt, damit die Schriftart an deinen Browser ausgeliefert werden kann. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO. Mehr Informationen bei Google unter policies.google.com/privacy.</p>
+
+        <p><strong>7. Lokale Speicherung (Local Storage) – keine Tracking-Cookies</strong><br>Diese Website verwendet <strong>keine Tracking- oder Werbe-Cookies</strong> und keine Analyse-/Statistik-Tools. Genutzt wird ausschließlich technisch notwendiger lokaler Speicher (Local Storage) direkt in deinem Browser, um z. B. zu merken, ob du das Community-Hinweisfenster bereits gesehen bzw. bestätigt hast oder ob dir der Installationshinweis bereits angezeigt wurde. Diese Daten verlassen dein Gerät nicht und werden nicht an mich oder Dritte übertragen. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO bzw. § 25 Abs. 2 Nr. 2 TTDSG (technisch notwendige Speicherung).</p>
+
+        <p><strong>8. Offline-Funktion (Service Worker)</strong><br>Diese Website kann als Progressive Web App (PWA) installiert werden und nutzt dafür einen sogenannten Service Worker, der statische Bestandteile der Seite (HTML, CSS, JavaScript, Icons) lokal in deinem Browser zwischenspeichert (Caching), damit die App auch bei erneutem Aufruf oder ohne Internetverbindung schnell startet. Es werden dabei keine personenbezogenen Daten an mich übermittelt oder ausgewertet – die Zwischenspeicherung erfolgt ausschließlich lokal auf deinem Gerät.</p>
+
+        <p><strong>9. Deine Rechte</strong><br>Du hast jederzeit das Recht auf Auskunft über die zu dir gespeicherten Daten (Art. 15 DSGVO) sowie auf Berichtigung (Art. 16 DSGVO), Löschung (Art. 17 DSGVO), Einschränkung der Verarbeitung (Art. 18 DSGVO) und Datenübertragbarkeit (Art. 20 DSGVO). Zudem steht dir ein Beschwerderecht bei einer Datenschutz-Aufsichtsbehörde zu (Art. 77 DSGVO). Bei Fragen oder zur Ausübung deiner Rechte wende dich einfach an die oben genannte E-Mail-Adresse.</p>
+
+        <p><strong>10. Änderungen dieser Datenschutzerklärung</strong><br>Diese Datenschutzerklärung kann bei Weiterentwicklung der Website oder bei Änderungen rechtlicher Vorgaben angepasst werden. Es gilt jeweils die aktuell auf dieser Seite abrufbare Fassung.</p>
       </div>
     </div>
   </div>
@@ -412,7 +430,6 @@
       <p style="font-size: 11px; opacity: 0.6; margin-top: 14px;">ℹ️ Die App läuft danach im Vollbild ohne Browser-Leiste und lädt dank Offline-Speicherung besonders schnell.</p>
     </div>
   </div>
-
 
   <!-- Bottom Sheet (Detail-Panel) -->
   <div id="bottomSheet" class="bottom-sheet">
