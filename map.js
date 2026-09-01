@@ -936,7 +936,7 @@ function closeReportModal() {
 async function handleReportSubmit(e) {
   e.preventDefault();
   const reason = document.getElementById("reportReason").value;
-  const details = document.getElementById("reportDetails").value.trim();
+  const details = document.getElementById("reportDescription").value.trim();
 
   if (!activeSpotForReport) return;
 
