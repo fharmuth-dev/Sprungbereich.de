@@ -29,9 +29,10 @@ if (!SUPABASE_URL || !SUPABASE_SERVICE_KEY) {
 
 const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_KEY);
 
-// Primärer Overpass-Endpunkt + Fallback-Mirror bei Downtime/Rate-Limit
+// Primärer Overpass-Endpunkt + Fallback-Mirrors bei Downtime/Rate-Limit/Blockade
 const OVERPASS_ENDPOINTS = [
   "https://overpass-api.de/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter",
   "https://overpass.kumi.systems/api/interpreter"
 ];
 
@@ -69,7 +70,11 @@ async function fetchOsmData() {
       console.log(`→ Frage Overpass-API an: ${endpoint} (kann 1-3 Minuten dauern für ganz Deutschland)...`);
       const res = await fetch(endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Accept": "application/json",
+          "User-Agent": "SprungbereichDeImport/1.0 (+https://sprungbereich.de; einmaliger Community-Datenimport)"
+        },
         body
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);

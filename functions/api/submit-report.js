@@ -2,13 +2,13 @@
 // Cloudflare Pages Function — POST /api/submit-report
 // ==========================================
 // Nimmt Korrektur-Meldungen ("Änderung melden") entgegen, prüft server-seitig
-// Turnstile + Honeypot, und legt den Report erst danach per Supabase
-// Service-Role-Key an. Gleiche Umgebungsvariablen wie submit-spot.js
-// (siehe dort für Details).
+// Turnstile + Honeypot, legt den Report per Supabase Service-Role-Key an und
+// benachrichtigt den Admin per E-Mail (Resend). Gleiche Umgebungsvariablen
+// wie submit-spot.js (siehe dort für Details).
 // ==========================================
 
 export async function onRequestPost(context) {
-  const { request, env } = context;
+  const { request, env, waitUntil } = context;
 
   try {
     const body = await request.json();
@@ -44,6 +44,8 @@ export async function onRequestPost(context) {
     if (!spot_id || !reason) {
       return jsonResponse({ success: false, error: "Fehlende Pflichtfelder." }, 400);
     }
+    const safeReason = String(reason).slice(0, 200);
+    const safeDetails = String(details || "").trim().slice(0, 2000);
 
     // --- 4. In Supabase speichern ---
     const insertRes = await fetch(`${env.SUPABASE_URL}/rest/v1/spot_reports`, {
@@ -56,8 +58,8 @@ export async function onRequestPost(context) {
       },
       body: JSON.stringify([{
         spot_id: spot_id,
-        reason: String(reason).slice(0, 200),
-        details: String(details || "").trim().slice(0, 2000)
+        reason: safeReason,
+        details: safeDetails
       }])
     });
 
@@ -67,11 +69,66 @@ export async function onRequestPost(context) {
       return jsonResponse({ success: false, error: "Fehler beim Speichern in der Datenbank." }, 500);
     }
 
+    // --- 5. Admin per E-Mail benachrichtigen (Spot-Namen kurz nachladen,
+    //         damit die Mail verständlich ist statt nur eine ID zu zeigen) ---
+    waitUntil((async () => {
+      let spotTitle = `Spot #${spot_id}`;
+      try {
+        const spotRes = await fetch(
+          `${env.SUPABASE_URL}/rest/v1/Spots?id=eq.${encodeURIComponent(spot_id)}&select=title`,
+          { headers: { "apikey": env.SUPABASE_SERVICE_KEY, "Authorization": `Bearer ${env.SUPABASE_SERVICE_KEY}` } }
+        );
+        const spotData = await spotRes.json();
+        if (Array.isArray(spotData) && spotData[0]?.title) spotTitle = spotData[0].title;
+      } catch (e) { /* Fällt auf die ID zurück, kein Problem */ }
+
+      await sendNotificationEmail(env, {
+        subject: `✏️ Neue Korrektur-Meldung: ${spotTitle}`,
+        html: `
+          <p>Für <strong>${escapeHtml(spotTitle)}</strong> wurde eine Korrektur gemeldet:</p>
+          <ul>
+            <li><strong>Grund:</strong> ${escapeHtml(safeReason)}</li>
+            <li><strong>Details:</strong> ${escapeHtml(safeDetails) || "–"}</li>
+          </ul>
+          <p>Zum Prüfen bitte in Supabase → Table Editor → spot_reports.</p>
+        `
+      });
+    })());
+
     return jsonResponse({ success: true });
   } catch (err) {
     console.error("submit-report Fehler:", err);
     return jsonResponse({ success: false, error: "Unerwarteter Serverfehler." }, 500);
   }
+}
+
+async function sendNotificationEmail(env, { subject, html }) {
+  if (!env.RESEND_API_KEY || !env.NOTIFY_EMAIL) return;
+  try {
+    await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${env.RESEND_API_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        from: env.RESEND_FROM || "Sprungbereich.de <onboarding@resend.dev>",
+        to: [env.NOTIFY_EMAIL],
+        subject,
+        html
+      })
+    });
+  } catch (err) {
+    console.error("Resend-Fehler (E-Mail konnte nicht gesendet werden):", err);
+  }
+}
+
+function escapeHtml(str) {
+  return String(str)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
 }
 
 function jsonResponse(obj, status = 200) {

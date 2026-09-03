@@ -392,9 +392,66 @@ async function loadSpotsFromSupabase() {
     }));
 
     applyAllFilters();
+
+    // Falls die Seite über einen geteilten Spot-Link geöffnet wurde,
+    // direkt den passenden Spot öffnen (Deep-Link)
+    openSharedSpotFromUrl();
   } catch (err) {
     console.error("Netzwerkfehler:", err);
   }
+}
+
+// ==========================================
+// Teilen-Funktion
+// ==========================================
+async function shareSpot(spot) {
+  const shareUrl = `${window.location.origin}${window.location.pathname}?spot=${spot.id}`;
+  const shareText = `Schau dir "${spot.name}" auf Sprungbereich.de an!`;
+
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: spot.name, text: shareText, url: shareUrl });
+    } catch (err) {
+      // Nutzer hat den Teilen-Dialog abgebrochen – kein Fehler, einfach ignorieren
+    }
+  } else if (navigator.clipboard) {
+    try {
+      await navigator.clipboard.writeText(shareUrl);
+      showShareToast("Link kopiert! ✓");
+    } catch (err) {
+      showShareToast("Kopieren fehlgeschlagen – Link: " + shareUrl);
+    }
+  } else {
+    showShareToast(shareUrl);
+  }
+}
+
+// Kleiner, unaufdringlicher Hinweis unten am Bildschirmrand (statt alert())
+function showShareToast(message) {
+  let toast = document.getElementById("shareToast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "shareToast";
+    toast.style.cssText = "position:fixed; bottom:24px; left:50%; transform:translateX(-50%); background:#0f172a; color:#00f2fe; border:1px solid rgba(0,242,254,0.4); padding:10px 18px; border-radius:8px; font-size:13px; font-weight:600; z-index:5000; box-shadow:0 4px 20px rgba(0,0,0,0.4); pointer-events:none; opacity:0; transition:opacity 0.25s;";
+    document.body.appendChild(toast);
+  }
+  toast.textContent = message;
+  requestAnimationFrame(() => { toast.style.opacity = "1"; });
+  clearTimeout(toast._hideTimer);
+  toast._hideTimer = setTimeout(() => { toast.style.opacity = "0"; }, 2200);
+}
+
+// Öffnet automatisch den Spot aus ?spot=<id> in der URL (für geteilte Links)
+function openSharedSpotFromUrl() {
+  const params = new URLSearchParams(window.location.search);
+  const sharedId = params.get("spot");
+  if (!sharedId) return;
+
+  const spot = allSpots.find(s => String(s.id) === String(sharedId));
+  if (!spot || isNaN(spot.lat) || isNaN(spot.lng)) return;
+
+  map.setView([spot.lat, spot.lng], 15);
+  setTimeout(() => openBottomSheet(spot), 400);
 }
 
 function renderGraffitiTitle(text) {
@@ -747,6 +804,12 @@ function openBottomSheet(spot) {
   document.getElementById("poolType").textContent = unknownHeight
     ? `${spot.type} • Keine Angabe zu Sprunganlagen`
     : `${spot.type} • Max. ${spot.height}m Turm`;
+
+  // Teilen-Button: nativer Share-Dialog auf Mobilgeräten, sonst Link kopieren
+  const shareBtn = document.getElementById("shareSpotBtn");
+  if (shareBtn) {
+    shareBtn.onclick = () => shareSpot(spot);
+  }
 
   // Report-Button: bei fehlender Höhenangabe leicht angepasster Text, aber
   // bewusst NICHT hervorgehoben/optimistisch formuliert – wir wissen nicht,
