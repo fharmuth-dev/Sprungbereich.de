@@ -115,50 +115,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!e.target.closest(".search-autocomplete")) hideSuggestions();
   });
 
-  // Leerzustand: einmal weggeklickt bleibt er weg, bis der Nutzer aktiv
-  // etwas an den Filtern ändert oder neu sucht.
-  const closeEmptyBtn = document.getElementById("closeEmptyStateBtn");
-  if (closeEmptyBtn) {
-    closeEmptyBtn.addEventListener("click", () => {
-      emptyStateDismissed = true;
-      const box = document.getElementById("emptyState");
-      if (box) box.hidden = true;
-    });
-  }
-
-  ["heightFilter", "typeFilter", "radiusFilter", "verifiedOnlyToggle", "showAllPoolsToggle"].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.addEventListener("change", () => { emptyStateDismissed = false; });
-  });
-
-  // Leerzustand: Filter zurücksetzen
-  const resetBtn = document.getElementById("resetFiltersBtn");
-  if (resetBtn) {
-    resetBtn.addEventListener("click", () => {
-      const h = document.getElementById("heightFilter");
-      const t = document.getElementById("typeFilter");
-      const v = document.getElementById("verifiedOnlyToggle");
-      const r = document.getElementById("radiusFilter");
-      if (h) h.value = "0";
-      if (t) t.value = "all";
-      if (v) v.checked = false;
-      if (r) r.value = "100";
-      [h, t, v, r].forEach(el => el && el.dispatchEvent(new Event("change")));
-      applyAllFilters();
-    });
-  }
-  
-  const locateBtn = document.getElementById("locateBtn");
-  if (locateBtn) {
-    locateBtn.addEventListener("click", getUserLocation);
-  }
-
-  document.getElementById("searchInput").addEventListener("keydown", (e) => {
-    if (e.key === "Enter") executeSearch();
-  });
-
-  document.getElementById("closeSheetBtn").addEventListener("click", () => closeBottomSheet(true));
-  
   // Modal Öffnen / Schließen Events
   document.getElementById("openAddModalBtn").addEventListener("click", () => {
     removeTempMarker();
@@ -647,7 +603,6 @@ function applyAllFilters() {
   markersGroup.clearLayers();
 
   const bounds = map.getBounds();
-  const activeFilters = { minHeight, type, verifiedOnly, showAllPools };
 
   const filtered = allSpots.filter(spot => {
     if (isNaN(spot.lat) || isNaN(spot.lng) || spot.lat === 0 || spot.lng === 0) {
@@ -682,8 +637,6 @@ function applyAllFilters() {
 
     return matchHeight && matchType && matchVerified && matchLocation && matchQuery;
   });
-
-  updateEmptyState(filtered.length, activeFilters);
 
   filtered.forEach(spot => {
     const isWildcard = hasWildcardFeature(spot);
@@ -1089,7 +1042,6 @@ async function executeSearch() {
   const query = input.value.trim();
 
   hideSuggestions();
-  emptyStateDismissed = false;
 
   if (!query) {
     resetSearchCenterState();
@@ -1269,83 +1221,4 @@ function resetTurnstile(widgetContainerId) {
       }
     }
   }
-}
-
-
-// ==========================================
-// LEERZUSTAND
-// ==========================================
-// Erklärt konkret, WARUM nichts zu sehen ist, statt den Nutzer vor einer
-// leeren Karte im Unklaren zu lassen.
-let emptyStateDismissed = false;
-
-function updateEmptyState(count, filters) {
-  const box = document.getElementById("emptyState");
-  const text = document.getElementById("emptyStateText");
-  const resetBtn = document.getElementById("resetFiltersBtn");
-  if (!box) return;
-
-  // Nie anzeigen, während der Nutzer gerade einen Standort auf der Karte
-  // markiert – der Hinweis würde dabei nur im Weg stehen.
-  if (count > 0 || allSpots.length === 0 || emptyStateDismissed || isPickingOnMap) {
-    box.hidden = true;
-    return;
-  }
-
-  const reasons = [];
-  if (filters.minHeight > 0) reasons.push(`Mindesthöhe ab ${filters.minHeight}m`);
-  if (filters.type !== "all") reasons.push(`nur „${filters.type}"`);
-  if (filters.verifiedOnly) reasons.push("nur verifizierte Spots");
-
-  if (text) {
-    if (reasons.length > 0) {
-      text.textContent = `Aktive Filter: ${reasons.join(", ")}. Ohne diese Filter findest du hier eventuell Spots.`;
-    } else if (!filters.showAllPools) {
-      text.textContent = "In diesem Bereich ist noch kein Sprung-Spot erfasst. Aktiviere „Alle Bäder anzeigen“ oder trage den ersten Spot ein!";
-    } else {
-      text.textContent = "Zieh die Karte weiter oder vergrößere den Umkreis.";
-    }
-  }
-
-  if (resetBtn) resetBtn.hidden = reasons.length === 0;
-  box.hidden = false;
-}
-
-
-// ==========================================
-// SICHERHEITS-FAKTEN IM DETAIL-PANEL
-// ==========================================
-// Zeigt Wassertiefe und Sprung-Erlaubnis als gut sichtbare Chips – die zwei
-// Angaben, die vor Ort wirklich über einen Sprung entscheiden.
-function renderSpotFacts(spot) {
-  const box = document.getElementById("spotFacts");
-  if (!box) return;
-
-  const chips = [];
-
-  const permissionMap = {
-    erlaubt:  { label: "Springen erlaubt",        cls: "is-good",   icon: "✅" },
-    aufsicht: { label: "Nur mit Aufsicht/Zeiten", cls: "is-warn",   icon: "👮" },
-    geduldet: { label: "Geduldet – eigene Gefahr",cls: "is-warn",   icon: "⚠️" },
-    verboten: { label: "Springen verboten",       cls: "is-danger", icon: "⛔" }
-  };
-
-  const perm = permissionMap[spot.jumpAllowed];
-  if (perm) chips.push({ text: `${perm.icon} ${perm.label}`, cls: perm.cls });
-
-  if (spot.waterDepth) {
-    const shallow = spot.waterDepth === "unter 2 m";
-    chips.push({ text: `🌊 Tiefe: ${spot.waterDepth}`, cls: shallow ? "is-danger" : "" });
-  }
-
-  if (chips.length === 0) { box.hidden = true; box.innerHTML = ""; return; }
-
-  box.innerHTML = "";
-  chips.forEach(c => {
-    const el = document.createElement("span");
-    el.className = `spot-fact ${c.cls}`.trim();
-    el.textContent = c.text;
-    box.appendChild(el);
-  });
-  box.hidden = false;
 }
