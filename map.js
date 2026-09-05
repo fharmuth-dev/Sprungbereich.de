@@ -62,11 +62,9 @@ document.addEventListener("DOMContentLoaded", () => {
   markersGroup = L.layerGroup().addTo(map);
   L.control.zoom({ position: 'bottomright' }).addTo(map);
 
-  // === ERKENNUNG FÜR FREIES MAP-SCROLLEN ===
-  map.on("dragstart", () => {
-    resetSearchCenterState();
-  });
-
+  // Bewusst KEIN Zurücksetzen beim Verschieben der Karte:
+  // Suchmittelpunkt, Radiuskreis und Markierung bleiben erhalten, bis der
+  // Nutzer aktiv neu sucht, den Standort nutzt oder das Suchfeld leert.
   map.on("moveend zoomend", () => {
     applyAllFilters();
   });
@@ -620,12 +618,13 @@ function applyAllFilters() {
     const matchType = type === "all" || spot.type === type;
     const matchVerified = !verifiedOnly || spot.verified === true;
 
-    let matchLocation = true;
-    if (currentSearchCenter) {
+    // Sichtbar ist, was im Suchradius liegt ODER gerade im Kartenausschnitt
+    // zu sehen ist. Dadurch bleibt das gesuchte Bad samt Radius bestehen,
+    // während beim Weiterschieben trotzdem neue Spots auftauchen.
+    let matchLocation = bounds.contains([spot.lat, spot.lng]);
+    if (!matchLocation && currentSearchCenter) {
       const dist = getDistanceInKm(currentSearchCenter.lat, currentSearchCenter.lng, spot.lat, spot.lng);
       matchLocation = dist <= maxRadiusKm;
-    } else {
-      matchLocation = bounds.contains([spot.lat, spot.lng]);
     }
 
     let matchQuery = true;
@@ -1031,7 +1030,9 @@ function focusSpot(spot) {
     typeFilter.dispatchEvent(new Event("change"));
   }
 
-  resetSearchCenterState();
+  // Gefundenes Bad wird als Suchmittelpunkt markiert und bleibt fixiert
+  currentSearchCenter = { lat: spot.lat, lng: spot.lng };
+  updateRadiusAndPin(spot.lat, spot.lng);
   map.setView([spot.lat, spot.lng], 14);
   applyAllFilters();
   setTimeout(() => openBottomSheet(spot), 350);
