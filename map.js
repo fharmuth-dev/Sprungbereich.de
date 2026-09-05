@@ -28,29 +28,34 @@ document.addEventListener("DOMContentLoaded", () => {
 
   renderGraffitiTitle("Deine Location dabei?");
 
-  // Geografische Begrenzung für Deutschland
+  // Geografische Begrenzung: Deutschland mit großzügigem Rand.
+  // Vorher endete die Grenze exakt an der Landesgrenze und zog die Karte
+  // mit voller Härte zurück – im Grenzgebiet (Bodensee, Alpen, Nordsee,
+  // Grenzregionen) war das Navigieren dadurch kaum möglich.
   const germanyBounds = L.latLngBounds(
-    L.latLng(47.2701, 5.8663),  // Südwest-Koordinate
-    L.latLng(55.0581, 15.0419)  // Nordost-Koordinate
+    L.latLng(44.5, 1.5),    // Südwest – reicht bis Schweiz/Österreich/Frankreich
+    L.latLng(57.5, 19.5)    // Nordost – reicht bis Dänemark/Polen/Tschechien
   );
 
-  // Karte initialisieren mit Begrenzung auf Deutschland
-  map = L.map("map", { 
+  map = L.map("map", {
     zoomControl: false,
-    minZoom: 6,
-    maxZoom: 16,
+    minZoom: 5,
+    maxZoom: 17,
     maxBounds: germanyBounds,
-    maxBoundsViscosity: 1.0
+    // 0.4 statt 1.0: sanftes Abfedern am Rand statt hartem Zurückschnappen
+    maxBoundsViscosity: 0.4
   }).setView([51.1657, 10.4515], 6);
 
   // Esri Dark Map Tiles
   L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}", {
-    maxZoom: 16,
+    maxZoom: 17,
+    maxNativeZoom: 16,
     attribution: 'Tiles © Esri — Esri, DeLorme, NAVTEQ | Teile der Spot-Daten © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>-Mitwirkende'
   }).addTo(map);
 
   L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}", {
-    maxZoom: 16,
+    maxZoom: 17,
+    maxNativeZoom: 16,
     interactive: false
   }).addTo(map);
 
@@ -631,8 +636,10 @@ function applyAllFilters() {
       return false;
     }
 
-    // Bonus-Layer: Bäder ohne Sprung-Info nur anzeigen, wenn explizit aktiviert
-    if (hasUnknownHeight(spot) && !showAllPools) {
+    // Bonus-Layer: NUR automatisch importierte OSM-Bäder ohne Sprung-Info
+    // verstecken. Von Menschen eingereichte Community-Spots bleiben immer
+    // sichtbar – auch wenn beim Eintragen keine Höhe angegeben wurde.
+    if (hasUnknownHeight(spot) && spot.source === "osm" && !showAllPools) {
       return false;
     }
 

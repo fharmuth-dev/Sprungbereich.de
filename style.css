@@ -1566,7 +1566,11 @@ input, textarea, select, .modal-field, .welcome-body, .sheet-content {
 
   position: absolute;
 
-  bottom: -360px;
+  bottom: 0;
+
+  /* translateY statt fester Pixelwert: verdeckt das Panel zuverlässig,
+     egal wie hoch der Inhalt ist (vorher blieb es bei langem Inhalt hängen) */
+  transform: translateY(110%);
 
   left: 0;
 
@@ -1582,7 +1586,9 @@ input, textarea, select, .modal-field, .welcome-body, .sheet-content {
 
   padding: 20px;
 
-  transition: bottom 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.32s cubic-bezier(0.16, 1, 0.3, 1);
+
+  visibility: hidden;
 
   box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.5);
 
@@ -1593,7 +1599,13 @@ input, textarea, select, .modal-field, .welcome-body, .sheet-content {
 }
 
 
-.bottom-sheet.active { bottom: 0; }
+.bottom-sheet.active {
+
+  transform: translateY(0);
+
+  visibility: visible;
+
+}
 
 /* iOS: Inhalt nicht unter den Home-Indicator laufen lassen */
 .bottom-sheet {
@@ -2463,5 +2475,31 @@ input, textarea, select, .modal-field, .welcome-body, .sheet-content {
   border-color: rgba(239, 68, 68, 0.5);
 
   color: #fca5a5;
+
+}
+
+
+/* Zweitrangiger Aktions-Button im Detail-Panel.
+   Vorher war er so dunkel, dass die Beschriftung kaum lesbar war. */
+.btn-nav-secondary {
+
+  margin-top: 8px;
+
+  background: rgba(255, 255, 255, 0.10) !important;
+
+  border: 1.5px solid rgba(0, 242, 254, 0.55);
+
+  color: #7fe9ff !important;
+
+  font-weight: 700;
+
+}
+
+.btn-nav-secondary:hover,
+.btn-nav-secondary:active {
+
+  background: rgba(0, 242, 254, 0.18) !important;
+
+  color: #ffffff !important;
 
 }
