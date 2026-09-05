@@ -1,0 +1,12 @@
+# Abhängigkeiten des Import-Skripts gehören nicht ins Deployment
+node_modules/
+tools/import-osm-pools/node_modules/
+
+# Lokale Umgebungsdateien mit Zugangsdaten – NIEMALS committen
+.env
+.env.*
+*.local
+
+# System-Dateien
+.DS_Store
+Thumbs.db

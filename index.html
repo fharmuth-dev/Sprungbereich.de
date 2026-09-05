@@ -2,8 +2,16 @@
 <html lang="de">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>Sprungbereich.de</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Sprungbereich.de – Sprungtürme &amp; Sprunganlagen finden</title>
+  <meta name="description" content="Die Community-Karte für Freibäder, Hallenbäder und Naturspots mit Sprungtürmen und Sprungbrettern in Deutschland.">
+
+  <!-- Vorschau beim Teilen von Spot-Links -->
+  <meta property="og:title" content="Sprungbereich.de">
+  <meta property="og:description" content="Finde Bäder mit Sprungturm in deiner Nähe – das Community-Projekt für Turm- und Klippenspringer.">
+  <meta property="og:type" content="website">
+  <meta property="og:image" content="images/icon-512.png">
+  <meta name="twitter:card" content="summary">
 
   <!-- PWA: Manifest, Icons & Theme-Farbe -->
   <link rel="manifest" href="manifest.json">
@@ -23,6 +31,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Sedgwick+Ave&family=Story+Script&display=swap" rel="stylesheet">
+
+  <!-- Verbindung zum Kartenserver vorab aufbauen (schnellere erste Kacheln) -->
+  <link rel="preconnect" href="https://server.arcgisonline.com" crossorigin>
+  <link rel="dns-prefetch" href="https://server.arcgisonline.com">
 
   <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -85,106 +97,130 @@
   <div id="map"></div>
 
   <!-- UI Panel -->
+  <!-- UI Panel -->
   <div class="search-panel">
-    <!-- Suche, Radius & Standort -->
+
+    <!-- IMMER SICHTBAR: Suche + Standort -->
     <div class="search-row">
-      <div class="field-group flex-grow">
-        <span class="field-label">Ort / PLZ</span>
-        <input type="text" id="searchInput" value="10117" placeholder="z. B. 10117 oder Berlin">
-      </div>
-      
-      <div class="field-group">
-        <span class="field-label">Radius</span>
-        <select id="radiusFilter" class="glass-select">
-          <option value="10">10 km</option>
-          <option value="25" selected>25 km</option>
-          <option value="50">50 km</option>
-          <option value="100">100 km</option>
-        </select>
+      <div class="field-group flex-grow search-autocomplete">
+        <input type="text" id="searchInput" placeholder="Bad, Ort oder PLZ suchen ..."
+               aria-label="Bad, Ort oder PLZ suchen"
+               autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+               role="combobox" aria-expanded="false" aria-controls="searchSuggestions" aria-autocomplete="list">
+        <ul id="searchSuggestions" class="search-suggestions" role="listbox" hidden></ul>
       </div>
 
-      <!-- GPS Standort Button -->
-      <button id="locateBtn" class="btn-search-glow" title="Mein Standort" style="background: linear-gradient(135deg, #10b981, #059669);">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+      <button id="locateBtn" class="btn-search-glow" title="Mein Standort" aria-label="Mein Standort verwenden" style="background: linear-gradient(135deg, #10b981, #059669);">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
       </button>
 
-      <button id="searchBtn" class="btn-search-glow" title="Suchen">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <button id="searchBtn" class="btn-search-glow" title="Suchen" aria-label="Suchen">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
       </button>
     </div>
 
-    <!-- Filter Zeile -->
-    <div class="filter-row">
-      <div class="field-group flex-1">
-        <span class="field-label">Mindest-Sprunghöhe</span>
-        <select id="heightFilter" class="glass-select">
-          <option value="0">Alle Höhen</option>
-          <option value="1">Ab 1m Brett</option>
-          <option value="3">Ab 3m Turm</option>
-          <option value="5">Ab 5m Turm</option>
-          <option value="7.5">Ab 7.5m Turm</option>
-          <option value="10">🔥 Ab 10m Profi-Turm</option>
-        </select>
+    <!-- FILTER-UMSCHALTER: hält die Startansicht ruhig -->
+    <button type="button" id="toggleFiltersBtn" class="filter-toggle-btn" aria-expanded="false" aria-controls="filterDrawer">
+      <span class="filter-toggle-label">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><path d="M3 5h18M6 12h12M10 19h4"/></svg>
+        Filter &amp; Legende
+      </span>
+      <span class="filter-toggle-right">
+        <span id="activeFilterCount" class="filter-count-badge" hidden>0</span>
+        <svg class="filter-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true"><polyline points="6 9 12 15 18 9"/></svg>
+      </span>
+    </button>
+
+    <!-- AUSKLAPPBAR: alle Filter, Legende & Rechtliches -->
+    <div id="filterDrawer" class="filter-drawer" hidden>
+
+      <div class="filter-row">
+        <div class="field-group flex-1">
+          <span class="field-label">Umkreis</span>
+          <select id="radiusFilter" class="glass-select">
+            <option value="10">10 km</option>
+            <option value="25" selected>25 km</option>
+            <option value="50">50 km</option>
+            <option value="100">100 km</option>
+          </select>
+        </div>
+
+        <div class="field-group flex-1">
+          <span class="field-label">Mindest-Sprunghöhe</span>
+          <select id="heightFilter" class="glass-select">
+            <option value="0">Alle Höhen</option>
+            <option value="1">Ab 1m Brett</option>
+            <option value="3">Ab 3m Turm</option>
+            <option value="5">Ab 5m Turm</option>
+            <option value="7.5">Ab 7.5m Turm</option>
+            <option value="10">🔥 Ab 10m Profi-Turm</option>
+          </select>
+        </div>
       </div>
 
-      <div class="field-group flex-1">
-        <span class="field-label">Spot-Kategorie</span>
-        <select id="typeFilter" class="glass-select">
-          <option value="all">Alle Arten</option>
-          <option value="Freibad">Freibad</option>
-          <option value="Hallenbad">Hallenbad</option>
-          <option value="Frei- und Hallenbad">Frei- und Hallenbad</option>
-          <option value="See">See / Klippe</option>
-        </select>
+      <div class="filter-row">
+        <div class="field-group flex-1">
+          <span class="field-label">Spot-Kategorie</span>
+          <select id="typeFilter" class="glass-select">
+            <option value="all">Alle Arten</option>
+            <option value="Freibad">Freibad</option>
+            <option value="Hallenbad">Hallenbad</option>
+            <option value="Frei- und Hallenbad">Frei- und Hallenbad</option>
+            <option value="See">See / Klippe</option>
+          </select>
+        </div>
       </div>
-    </div>
 
-    <!-- Farb-Legende inkl. Wildcard -->
-    <div class="legend-row">
-      <div class="legend-item">
-        <span class="dot dot-freibad"></span>
-        <span class="legend-text">Freibad</span>
-      </div>
-      <div class="legend-item">
-        <span class="dot dot-hallenbad"></span>
-        <span class="legend-text">Hallenbad</span>
-      </div>
-      <div class="legend-item">
-        <span class="dot dot-see"></span>
-        <span class="legend-text">See / Klippe</span>
-      </div>
-      <div class="legend-item" id="legendUnknownItem" title="Bad ohne Angabe zu Sprunganlagen – nur sichtbar, wenn „Alle bekannten Bäder“ aktiviert ist." style="display: none;">
-        <span class="dot dot-unknown"></span>
-        <span class="legend-text">Ohne Sprung-Info</span>
-      </div>
-      <div class="legend-item" title="Besondere Highlights wie Bubble-Anlage, Rope Swing oder Trampoline">
-        <span class="dot-wildcard" style="background: linear-gradient(135deg, #f59e0b, #ef4444); color: #fff; font-weight: bold; font-size: 10px; width: 16px; height: 16px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 0 8px rgba(245, 158, 11, 0.8);">W</span>
-        <span class="legend-text" style="font-weight: bold; color: #f59e0b;">Wildcard</span>
-      </div>
-    </div>
-
-    <!-- Bonus-Layer: alle bekannten Bäder (auch ohne Sprungbereich) -->
-    <label class="toggle-container" id="showAllPoolsRow" style="margin-bottom: 8px;" title="Zeigt zusätzlich alle bekannten Bäder in der Nähe an – unabhängig davon, ob dort ein Sprungbereich existiert.">
-      <input type="checkbox" id="showAllPoolsToggle">
-      <span class="toggle-custom"></span>
-      <span class="toggle-text">Alle bekannten Bäder anzeigen <span style="opacity: 0.6; font-weight: 400;">(Bonus, auch ohne Turm)</span></span>
-    </label>
-
-    <!-- Footer Toggle & Rechtslinks -->
-    <div class="filter-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
-      <label class="toggle-container">
+      <label class="toggle-container drawer-toggle">
         <input type="checkbox" id="verifiedOnlyToggle">
         <span class="toggle-custom"></span>
         <span class="toggle-text">Nur verifizierte Spots</span>
       </label>
 
-      <!-- Links für Impressum & Datenschutz -->
-      <div class="legal-links" style="font-size: 11px; opacity: 0.7;">
-        <a href="#" id="openInstallBtn" style="color: #00f2fe; text-decoration: underline; margin-right: 8px;">📲 App installieren</a>
-        <a href="#" id="openImpressumBtn" style="color: #fff; text-decoration: underline; margin-right: 8px;">Impressum</a>
-        <a href="#" id="openPrivacyBtn" style="color: #fff; text-decoration: underline;">Datenschutz</a>
+      <label class="toggle-container drawer-toggle" id="showAllPoolsRow" title="Zeigt zusätzlich alle bekannten Bäder an – unabhängig davon, ob dort ein Sprungbereich existiert.">
+        <input type="checkbox" id="showAllPoolsToggle">
+        <span class="toggle-custom"></span>
+        <span class="toggle-text">Alle Bäder anzeigen <span style="opacity: 0.6; font-weight: 400;">(Beta)</span></span>
+      </label>
+
+      <!-- Farb-Legende -->
+      <div class="legend-row">
+        <div class="legend-item">
+          <span class="dot dot-freibad"></span>
+          <span class="legend-text">Freibad</span>
+        </div>
+        <div class="legend-item">
+          <span class="dot dot-hallenbad"></span>
+          <span class="legend-text">Hallenbad</span>
+        </div>
+        <div class="legend-item">
+          <span class="dot dot-see"></span>
+          <span class="legend-text">See / Klippe</span>
+        </div>
+        <div class="legend-item" id="legendUnknownItem" title="Bad ohne Angabe zu Sprunganlagen – nur sichtbar, wenn „Alle Bäder“ aktiviert ist." style="display: none;">
+          <span class="dot dot-unknown"></span>
+          <span class="legend-text">Ohne Sprung-Info</span>
+        </div>
+        <div class="legend-item" title="Besondere Highlights wie Bubble-Anlage, Rope Swing oder Trampoline">
+          <span class="dot-wildcard" style="background: linear-gradient(135deg, #f59e0b, #ef4444); color: #fff; font-weight: bold; font-size: 10px; width: 16px; height: 16px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; box-shadow: 0 0 8px rgba(245, 158, 11, 0.8);">W</span>
+          <span class="legend-text" style="font-weight: bold; color: #f59e0b;">Wildcard</span>
+        </div>
+      </div>
+
+      <!-- Rechtliches & Installation -->
+      <div class="legal-links">
+        <a href="#" id="openInstallBtn">📲 App installieren</a>
+        <a href="#" id="openImpressumBtn">Impressum</a>
+        <a href="#" id="openPrivacyBtn">Datenschutz</a>
       </div>
     </div>
+  </div>
+
+  <!-- Leerzustand: erscheint, wenn keine Spots im Ausschnitt liegen -->
+  <div id="emptyState" class="empty-state" hidden role="status">
+    <p class="empty-state-title">Keine Spots in diesem Bereich</p>
+    <p class="empty-state-text" id="emptyStateText">Zieh die Karte, vergrößere den Umkreis oder setze die Filter zurück.</p>
+    <button type="button" id="resetFiltersBtn" class="empty-state-btn">Filter zurücksetzen</button>
   </div>
 
   <!-- ARCADE / DIVE COMMUNITY BANNER -->
@@ -310,6 +346,32 @@
         <div class="modal-field">
           <label>Beschreibung & Infos zum Spot</label>
           <textarea id="newSpotDescription" rows="3" placeholder="z. B. Trampdive nur für Vereinsmitglieder nutzbar, 10m Turm schließt um 18 Uhr..." style="width: 100%; padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: #fff; font-family: inherit; resize: vertical;"></textarea>
+        </div>
+
+        <!-- Sicherheits- & Rechtsangaben -->
+        <div class="modal-field">
+          <label>Ist das Springen dort erlaubt?</label>
+          <select id="spotJumpAllowed" class="glass-select modal-select">
+            <option value="">Keine Angabe</option>
+            <option value="erlaubt">✅ Offiziell erlaubt / freigegeben</option>
+            <option value="aufsicht">👮 Nur zu bestimmten Zeiten / mit Aufsicht</option>
+            <option value="geduldet">⚠️ Geduldet – auf eigene Gefahr</option>
+            <option value="verboten">⛔ Verboten / gesperrt</option>
+          </select>
+          <small class="field-hint">Hilft anderen, keine unangenehmen Überraschungen vor Ort zu erleben.</small>
+        </div>
+
+        <div class="modal-field">
+          <label>Wassertiefe im Sprungbereich (Optional)</label>
+          <select id="spotWaterDepth" class="glass-select modal-select">
+            <option value="">Unbekannt</option>
+            <option value="unter 2 m">unter 2 m</option>
+            <option value="2-3 m">2 – 3 m</option>
+            <option value="3-4 m">3 – 4 m</option>
+            <option value="4-5 m">4 – 5 m</option>
+            <option value="über 5 m">über 5 m</option>
+          </select>
+          <small class="field-hint">Wichtigste Sicherheitsangabe überhaupt – besonders bei Seen und Klippen.</small>
         </div>
 
         <!-- Webseite (Optional) -->
@@ -447,24 +509,76 @@
       <!-- Nativer Ein-Klick-Install (nur sichtbar, wenn der Browser das unterstützt, z. B. Android/Chrome) -->
       <button id="nativeInstallBtn" class="btn-submit-spot" style="display: none; margin-bottom: 16px;">JETZT INSTALLIEREN</button>
 
-      <div class="install-instructions">
-        <div class="install-os-block">
-          <h3 class="install-os-title">🍏 iPhone / iPad (Safari)</h3>
+      <!-- Erkannte Anleitung: JS blendet nur den passenden Block ein -->
+      <div class="install-instructions" id="installInstructions">
+
+        <div class="install-os-block" data-install="ios-safari" hidden>
+          <h3 class="install-os-title">🍏 iPhone / iPad – Safari</h3>
           <ol class="install-steps">
-            <li>Tippe unten in Safari auf das <strong>Teilen-Symbol</strong> (Quadrat mit Pfeil nach oben).</li>
-            <li>Wähle im Menü <strong>„Zum Home-Bildschirm"</strong>.</li>
-            <li>Tippe oben rechts auf <strong>„Hinzufügen"</strong> – fertig!</li>
+            <li>Tippe unten in der Mitte auf das <strong>Teilen-Symbol</strong> (Quadrat mit Pfeil nach oben).</li>
+            <li>Scrolle im Menü nach unten zu <strong>„Zum Home-Bildschirm"</strong>.</li>
+            <li>Oben rechts auf <strong>„Hinzufügen"</strong> – fertig!</li>
           </ol>
         </div>
 
-        <div class="install-os-block">
-          <h3 class="install-os-title">🤖 Android (Chrome)</h3>
+        <div class="install-os-block" data-install="ios-other" hidden>
+          <h3 class="install-os-title">🍏 iPhone / iPad – dieser Browser</h3>
           <ol class="install-steps">
-            <li>Tippe oben rechts auf das <strong>Drei-Punkte-Menü</strong>.</li>
+            <li>Tippe auf das <strong>Teilen-Symbol</strong> deines Browsers.</li>
+            <li>Wähle <strong>„Zum Home-Bildschirm"</strong>.</li>
+          </ol>
+          <p class="install-note">Klappt das nicht? Öffne <strong>sprungbereich.de in Safari</strong> – dort funktioniert die Installation auf dem iPhone am zuverlässigsten.</p>
+        </div>
+
+        <div class="install-os-block" data-install="android-chrome" hidden>
+          <h3 class="install-os-title">🤖 Android – Chrome</h3>
+          <ol class="install-steps">
+            <li>Tippe oben rechts auf das <strong>Drei-Punkte-Menü</strong> (⋮).</li>
             <li>Wähle <strong>„App installieren"</strong> bzw. <strong>„Zum Startbildschirm hinzufügen"</strong>.</li>
-            <li>Bestätige mit <strong>„Installieren"</strong> – fertig!</li>
+            <li>Mit <strong>„Installieren"</strong> bestätigen – fertig!</li>
           </ol>
         </div>
+
+        <div class="install-os-block" data-install="android-samsung" hidden>
+          <h3 class="install-os-title">🤖 Android – Samsung Internet</h3>
+          <ol class="install-steps">
+            <li>Tippe unten auf das <strong>Menü</strong> (drei Striche).</li>
+            <li>Wähle <strong>„Seite hinzufügen zu"</strong> → <strong>„Startbildschirm"</strong>.</li>
+          </ol>
+        </div>
+
+        <div class="install-os-block" data-install="android-firefox" hidden>
+          <h3 class="install-os-title">🤖 Android – Firefox</h3>
+          <ol class="install-steps">
+            <li>Tippe rechts auf das <strong>Drei-Punkte-Menü</strong> (⋮).</li>
+            <li>Wähle <strong>„Installieren"</strong> oder <strong>„Zum Startbildschirm hinzufügen"</strong>.</li>
+          </ol>
+        </div>
+
+        <div class="install-os-block" data-install="desktop" hidden>
+          <h3 class="install-os-title">💻 Computer</h3>
+          <ol class="install-steps">
+            <li><strong>Chrome / Edge:</strong> Klicke rechts in der Adressleiste auf das <strong>Installations-Symbol</strong> (Bildschirm mit Pfeil).</li>
+            <li><strong>Safari (Mac):</strong> Menü <strong>„Ablage"</strong> → <strong>„Zum Dock hinzufügen"</strong>.</li>
+            <li><strong>Firefox:</strong> Unterstützt die Installation nicht – nutze Chrome, Edge oder Safari.</li>
+          </ol>
+        </div>
+
+        <div class="install-os-block" data-install="fallback" hidden>
+          <h3 class="install-os-title">📱 Zum Startbildschirm hinzufügen</h3>
+          <ol class="install-steps">
+            <li>Öffne das <strong>Menü deines Browsers</strong> (⋮ oder Teilen-Symbol).</li>
+            <li>Wähle <strong>„App installieren"</strong> bzw. <strong>„Zum Startbildschirm hinzufügen"</strong>.</li>
+          </ol>
+        </div>
+
+        <!-- Bereits installiert -->
+        <div class="install-os-block install-done" data-install="installed" hidden>
+          <h3 class="install-os-title">✅ Läuft bereits als App</h3>
+          <p class="install-note">Du nutzt Sprungbereich.de schon im App-Modus. Nichts weiter zu tun!</p>
+        </div>
+
+        <button type="button" id="showAllInstallBtn" class="install-showall-btn">Anleitung für ein anderes Gerät anzeigen</button>
       </div>
 
       <p style="font-size: 11px; opacity: 0.6; margin-top: 14px;">ℹ️ Die App läuft danach im Vollbild ohne Browser-Leiste und lädt dank Offline-Speicherung besonders schnell.</p>
@@ -482,6 +596,9 @@
 
       <!-- NEU: Sicherheitshinweis, abhängig vom Spot-Typ (Bad = dezent, See/Klippe = deutlich) -->
       <p id="safetyNotice" class="safety-notice" style="display: none;"></p>
+
+      <!-- Sicherheits-Fakten (Tiefe / Erlaubnis) -->
+      <div id="spotFacts" class="spot-facts" hidden></div>
 
       <!-- NEU: Spot-Beschreibung anzeigen -->
       <p id="poolDescription" style="font-size: 13px; color: #ddd; background: rgba(255,255,255,0.05); padding: 8px 12px; border-radius: 6px; margin-bottom: 12px; display: none; line-height: 1.4; border-left: 3px solid #00f2fe;"></p>

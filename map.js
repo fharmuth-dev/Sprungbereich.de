@@ -91,6 +91,41 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.getElementById("searchBtn").addEventListener("click", executeSearch);
+
+  // Live-Vorschläge beim Tippen (entprellt, damit es auf dem Handy flüssig bleibt)
+  const searchInputEl = document.getElementById("searchInput");
+  if (searchInputEl) {
+    let suggestTimer = null;
+    searchInputEl.addEventListener("input", () => {
+      clearTimeout(suggestTimer);
+      suggestTimer = setTimeout(renderSuggestions, 140);
+    });
+    searchInputEl.addEventListener("focus", () => {
+      if (searchInputEl.value.trim().length >= 2) renderSuggestions();
+    });
+  }
+
+  // Klick außerhalb schließt die Vorschlagsliste
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest(".search-autocomplete")) hideSuggestions();
+  });
+
+  // Leerzustand: Filter zurücksetzen
+  const resetBtn = document.getElementById("resetFiltersBtn");
+  if (resetBtn) {
+    resetBtn.addEventListener("click", () => {
+      const h = document.getElementById("heightFilter");
+      const t = document.getElementById("typeFilter");
+      const v = document.getElementById("verifiedOnlyToggle");
+      const r = document.getElementById("radiusFilter");
+      if (h) h.value = "0";
+      if (t) t.value = "all";
+      if (v) v.checked = false;
+      if (r) r.value = "100";
+      [h, t, v, r].forEach(el => el && el.dispatchEvent(new Event("change")));
+      applyAllFilters();
+    });
+  }
   
   const locateBtn = document.getElementById("locateBtn");
   if (locateBtn) {
@@ -384,6 +419,8 @@ async function loadSpotsFromSupabase() {
       facilities: spot.facilities || [],
       images: spot.images || [],
       websiteUrl: spot.website_url || "",
+      jumpAllowed: spot.jump_allowed || "",
+      waterDepth: spot.water_depth || "",
       source: spot.source || "community",
       verified: spot.status === 'approved',
       status: spot.status,
@@ -587,6 +624,7 @@ function applyAllFilters() {
   markersGroup.clearLayers();
 
   const bounds = map.getBounds();
+  const activeFilters = { minHeight, type, verifiedOnly, showAllPools };
 
   const filtered = allSpots.filter(spot => {
     if (isNaN(spot.lat) || isNaN(spot.lng) || spot.lat === 0 || spot.lng === 0) {
@@ -619,6 +657,8 @@ function applyAllFilters() {
 
     return matchHeight && matchType && matchVerified && matchLocation && matchQuery;
   });
+
+  updateEmptyState(filtered.length, activeFilters);
 
   filtered.forEach(spot => {
     const isWildcard = hasWildcardFeature(spot);
@@ -742,6 +782,8 @@ async function handleAddSpotSubmit(e) {
       height: maxHeight,
       facilities: selectedLabels,
       website_url: website,
+      jump_allowed: document.getElementById("spotJumpAllowed")?.value || "",
+      water_depth: document.getElementById("spotWaterDepth")?.value || "",
       website_hp: document.getElementById("spotWebsiteHp")?.value || "", // Honeypot
       turnstileToken: getTurnstileToken("addSpotTurnstile"),
       latitude: lat,
@@ -799,6 +841,8 @@ function openBottomSheet(spot) {
   const safetyNotice = document.getElementById("safetyNotice");
 
   const unknownHeight = hasUnknownHeight(spot);
+
+  renderSpotFacts(spot);
 
   document.getElementById("poolTitle").textContent = spot.name;
   document.getElementById("poolType").textContent = unknownHeight
@@ -873,16 +917,30 @@ function openBottomSheet(spot) {
     galleryContainer.innerHTML = "";
     if (spot.images && spot.images.length > 0) {
       galleryContainer.style.display = "flex";
+      let visibleImages = 0;
+
       spot.images.forEach(url => {
+        if (!url || typeof url !== "string") return;
+
         const img = document.createElement("img");
+        // Lazy + async: blockiert das Öffnen des Panels nicht mehr
+        img.loading = "lazy";
+        img.decoding = "async";
+        img.alt = `Foto von ${spot.name}`;
+        img.style.cssText = "width:90px;height:90px;object-fit:cover;border-radius:8px;border:1px solid rgba(255,255,255,0.2);cursor:pointer;background:rgba(255,255,255,0.05);flex:0 0 auto;";
+
+        // Tote Bild-URLs (z. B. aus dem entfernten Storage-Bucket) sauber
+        // ausblenden statt als kaputtes Platzhalter-Icon stehen zu lassen
+        img.addEventListener("error", () => {
+          img.remove();
+          visibleImages--;
+          if (visibleImages <= 0) galleryContainer.style.display = "none";
+        });
+
+        img.addEventListener("load", () => { visibleImages++; });
+
         img.src = url;
-        img.style.width = "90px";
-        img.style.height = "90px";
-        img.style.objectFit = "cover";
-        img.style.borderRadius = "8px";
-        img.style.border = "1px solid rgba(255,255,255,0.2)";
-        img.style.cursor = "pointer";
-        img.onclick = () => window.open(url, '_blank');
+        img.onclick = () => window.open(url, "_blank", "noopener");
         galleryContainer.appendChild(img);
       });
     } else {
@@ -925,16 +983,109 @@ function closeBottomSheet(shouldGoBackHistory = true) {
   }
 }
 
+// ==========================================
+// INTELLIGENTE SUCHE
+// ==========================================
+// Reihenfolge bewusst so gewählt: Erst wird geprüft, ob der Eingabetext auf
+// einen bereits erfassten Spot passt (Badname!). Nur wenn nichts passt, wird
+// als Fallback die Ortssuche (Nominatim) bemüht. Vorher scheiterte die Suche
+// nach einem Badnamen, weil Nominatim Badnamen meist nicht kennt.
+
+function normalizeText(value) {
+  return String(value || "")
+    .toLowerCase()
+    .replaceAll("ä", "ae").replaceAll("ö", "oe").replaceAll("ü", "ue").replaceAll("ß", "ss")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+// Findet passende Spots und sortiert sie nach Trefferqualität
+function findMatchingSpots(rawQuery, limit = 6) {
+  const q = normalizeText(rawQuery);
+  if (q.length < 2) return [];
+
+  const scored = [];
+  for (const spot of allSpots) {
+    if (isNaN(spot.lat) || isNaN(spot.lng)) continue;
+
+    const name = normalizeText(spot.name);
+    const city = normalizeText(spot.city);
+    let score = 0;
+
+    if (name === q) score = 100;
+    else if (name.startsWith(q)) score = 80;
+    else if (name.includes(q)) score = 60;
+    else if (`${name} ${city}`.includes(q)) score = 40;
+    else if (city.startsWith(q)) score = 20;
+
+    // Spots mit bekannter Sprunghöhe leicht bevorzugen – das ist der Kern der App
+    if (score > 0) {
+      if (!hasUnknownHeight(spot)) score += 5;
+      scored.push({ spot, score });
+    }
+  }
+
+  scored.sort((a, b) => b.score - a.score || a.spot.name.localeCompare(b.spot.name));
+  return scored.slice(0, limit).map(s => s.spot);
+}
+
+// Springt zu einem konkreten Spot und öffnet dessen Detailansicht
+function focusSpot(spot) {
+  if (!spot) return;
+
+  // Falls der Spot durch aktive Filter unsichtbar wäre, Filter passend lösen,
+  // damit der Nutzer nicht auf eine leere Karte schaut.
+  const showAll = document.getElementById("showAllPoolsToggle");
+  if (hasUnknownHeight(spot) && showAll && !showAll.checked) {
+    showAll.checked = true;
+    showAll.dispatchEvent(new Event("change"));
+  }
+
+  const heightFilter = document.getElementById("heightFilter");
+  if (heightFilter && parseFloat(heightFilter.value) > (spot.height || 0)) {
+    heightFilter.value = "0";
+    heightFilter.dispatchEvent(new Event("change"));
+  }
+
+  const typeFilter = document.getElementById("typeFilter");
+  if (typeFilter && typeFilter.value !== "all" && typeFilter.value !== spot.type) {
+    typeFilter.value = "all";
+    typeFilter.dispatchEvent(new Event("change"));
+  }
+
+  resetSearchCenterState();
+  map.setView([spot.lat, spot.lng], 14);
+  applyAllFilters();
+  setTimeout(() => openBottomSheet(spot), 350);
+}
+
 async function executeSearch() {
-  const query = document.getElementById("searchInput").value.trim();
+  const input = document.getElementById("searchInput");
+  const query = input.value.trim();
+
+  hideSuggestions();
+
   if (!query) {
     resetSearchCenterState();
     applyAllFilters();
     return;
   }
 
+  // 1. Zuerst in den eigenen Spots suchen (Badnamen!)
+  const matches = findMatchingSpots(query, 1);
+  if (matches.length > 0) {
+    focusSpot(matches[0]);
+    return;
+  }
+
+  // 2. Fallback: Ortssuche über Nominatim
+  const searchBtn = document.getElementById("searchBtn");
+  if (searchBtn) searchBtn.classList.add("is-loading");
+
   try {
-    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&countrycodes=de&limit=1&q=${encodeURIComponent(query)}`
+    );
     const data = await res.json();
 
     if (data && data.length > 0) {
@@ -945,11 +1096,76 @@ async function executeSearch() {
       updateRadiusAndPin(lat, lng);
       applyAllFilters();
     } else {
-      alert("Ort nicht gefunden. Bitte Suchbegriff anpassen.");
+      showSearchFeedback(`Für „${query}" wurde weder ein Bad noch ein Ort gefunden.`);
     }
   } catch (err) {
     console.error("Fehler bei Ortssuche:", err);
+    showSearchFeedback("Suche gerade nicht erreichbar – bitte Verbindung prüfen.");
+  } finally {
+    if (searchBtn) searchBtn.classList.remove("is-loading");
   }
+}
+
+// Rückmeldung ohne störendes alert()
+function showSearchFeedback(message) {
+  const list = document.getElementById("searchSuggestions");
+  if (!list) return;
+  list.innerHTML = `<li class="suggestion-hint">${message}</li>`;
+  list.hidden = false;
+  setTimeout(() => hideSuggestions(), 3500);
+}
+
+function hideSuggestions() {
+  const list = document.getElementById("searchSuggestions");
+  const input = document.getElementById("searchInput");
+  if (list) { list.hidden = true; list.innerHTML = ""; }
+  if (input) input.setAttribute("aria-expanded", "false");
+}
+
+// Live-Vorschläge während des Tippens
+function renderSuggestions() {
+  const input = document.getElementById("searchInput");
+  const list = document.getElementById("searchSuggestions");
+  if (!input || !list) return;
+
+  const query = input.value.trim();
+  if (query.length < 2) { hideSuggestions(); return; }
+
+  const matches = findMatchingSpots(query, 6);
+  if (matches.length === 0) { hideSuggestions(); return; }
+
+  list.innerHTML = "";
+  matches.forEach(spot => {
+    const li = document.createElement("li");
+    li.className = "suggestion-item";
+    li.setAttribute("role", "option");
+
+    const unknown = hasUnknownHeight(spot);
+    const badge = unknown ? "?" : `${spot.height}m`;
+
+    li.innerHTML = `
+      <span class="suggestion-main">
+        <span class="suggestion-name"></span>
+        <span class="suggestion-meta"></span>
+      </span>
+      <span class="suggestion-height ${unknown ? "is-unknown" : ""}">${badge}</span>
+    `;
+    // Nutzerdaten bewusst als Text setzen (kein HTML aus der Datenbank ausführen)
+    li.querySelector(".suggestion-name").textContent = spot.name;
+    li.querySelector(".suggestion-meta").textContent =
+      [spot.city, spot.type].filter(Boolean).join(" · ");
+
+    li.addEventListener("click", () => {
+      input.value = spot.name;
+      hideSuggestions();
+      focusSpot(spot);
+    });
+
+    list.appendChild(li);
+  });
+
+  list.hidden = false;
+  input.setAttribute("aria-expanded", "true");
 }
 
 function openReportModal() {
@@ -1027,4 +1243,79 @@ function resetTurnstile(widgetContainerId) {
       }
     }
   }
+}
+
+
+// ==========================================
+// LEERZUSTAND
+// ==========================================
+// Erklärt konkret, WARUM nichts zu sehen ist, statt den Nutzer vor einer
+// leeren Karte im Unklaren zu lassen.
+function updateEmptyState(count, filters) {
+  const box = document.getElementById("emptyState");
+  const text = document.getElementById("emptyStateText");
+  const resetBtn = document.getElementById("resetFiltersBtn");
+  if (!box) return;
+
+  if (count > 0 || allSpots.length === 0) {
+    box.hidden = true;
+    return;
+  }
+
+  const reasons = [];
+  if (filters.minHeight > 0) reasons.push(`Mindesthöhe ab ${filters.minHeight}m`);
+  if (filters.type !== "all") reasons.push(`nur „${filters.type}"`);
+  if (filters.verifiedOnly) reasons.push("nur verifizierte Spots");
+
+  if (text) {
+    if (reasons.length > 0) {
+      text.textContent = `Aktive Filter: ${reasons.join(", ")}. Ohne diese Filter findest du hier eventuell Spots.`;
+    } else if (!filters.showAllPools) {
+      text.textContent = "In diesem Bereich ist noch kein Sprung-Spot erfasst. Aktiviere „Alle Bäder anzeigen“ oder trage den ersten Spot ein!";
+    } else {
+      text.textContent = "Zieh die Karte weiter oder vergrößere den Umkreis.";
+    }
+  }
+
+  if (resetBtn) resetBtn.hidden = reasons.length === 0;
+  box.hidden = false;
+}
+
+
+// ==========================================
+// SICHERHEITS-FAKTEN IM DETAIL-PANEL
+// ==========================================
+// Zeigt Wassertiefe und Sprung-Erlaubnis als gut sichtbare Chips – die zwei
+// Angaben, die vor Ort wirklich über einen Sprung entscheiden.
+function renderSpotFacts(spot) {
+  const box = document.getElementById("spotFacts");
+  if (!box) return;
+
+  const chips = [];
+
+  const permissionMap = {
+    erlaubt:  { label: "Springen erlaubt",        cls: "is-good",   icon: "✅" },
+    aufsicht: { label: "Nur mit Aufsicht/Zeiten", cls: "is-warn",   icon: "👮" },
+    geduldet: { label: "Geduldet – eigene Gefahr",cls: "is-warn",   icon: "⚠️" },
+    verboten: { label: "Springen verboten",       cls: "is-danger", icon: "⛔" }
+  };
+
+  const perm = permissionMap[spot.jumpAllowed];
+  if (perm) chips.push({ text: `${perm.icon} ${perm.label}`, cls: perm.cls });
+
+  if (spot.waterDepth) {
+    const shallow = spot.waterDepth === "unter 2 m";
+    chips.push({ text: `🌊 Tiefe: ${spot.waterDepth}`, cls: shallow ? "is-danger" : "" });
+  }
+
+  if (chips.length === 0) { box.hidden = true; box.innerHTML = ""; return; }
+
+  box.innerHTML = "";
+  chips.forEach(c => {
+    const el = document.createElement("span");
+    el.className = `spot-fact ${c.cls}`.trim();
+    el.textContent = c.text;
+    box.appendChild(el);
+  });
+  box.hidden = false;
 }

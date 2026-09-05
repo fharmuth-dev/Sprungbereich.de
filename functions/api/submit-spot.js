@@ -71,7 +71,31 @@ export async function onRequestPost(context) {
     const safeDescription = String(description || "").trim().slice(0, 2000);
 
     // --- 4. In Supabase speichern (via Service-Role-Key, serverseitig) ---
-    const insertRes = await fetch(`${env.SUPABASE_URL}/rest/v1/Spots`, {
+    const baseRow = {
+      title: safeTitle,
+      city: safeCity,
+      description: safeDescription,
+      type: safeType,
+      height: Number(height) || 0,
+      facilities: Array.isArray(facilities) ? facilities.slice(0, 20) : [],
+      website_url: website_url ? String(website_url).trim().slice(0, 300) : "",
+      status: "pending",
+      source: "community",
+      latitude: Number(latitude),
+      longitude: Number(longitude)
+    };
+
+    // Zusatzfelder nur mitschicken, wenn ausgefüllt
+    const allowedPermissions = ["erlaubt", "aufsicht", "geduldet", "verboten"];
+    const extraRow = { ...baseRow };
+    if (allowedPermissions.includes(body.jump_allowed)) {
+      extraRow.jump_allowed = body.jump_allowed;
+    }
+    if (body.water_depth) {
+      extraRow.water_depth = String(body.water_depth).slice(0, 40);
+    }
+
+    const insertRow = async (row) => fetch(`${env.SUPABASE_URL}/rest/v1/Spots`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -79,20 +103,21 @@ export async function onRequestPost(context) {
         "Authorization": `Bearer ${env.SUPABASE_SERVICE_KEY}`,
         "Prefer": "return=minimal"
       },
-      body: JSON.stringify([{
-        title: safeTitle,
-        city: safeCity,
-        description: safeDescription,
-        type: safeType,
-        height: Number(height) || 0,
-        facilities: Array.isArray(facilities) ? facilities.slice(0, 20) : [],
-        website_url: website_url ? String(website_url).trim().slice(0, 300) : "",
-        status: "pending",
-        source: "community",
-        latitude: Number(latitude),
-        longitude: Number(longitude)
-      }])
+      body: JSON.stringify([row])
     });
+
+    let insertRes = await insertRow(extraRow);
+
+    // Fehlertoleranz: Existieren die neuen Spalten (jump_allowed / water_depth)
+    // in Supabase noch nicht, wird ohne sie erneut gespeichert. So bricht die
+    // Einreichung NIE, auch wenn die Spalten noch nicht angelegt wurden.
+    if (!insertRes.ok && extraRow !== baseRow) {
+      const firstError = await insertRes.clone().text();
+      if (/column|schema|PGRST/i.test(firstError)) {
+        console.warn("Neue Spalten fehlen in Supabase – speichere ohne sie:", firstError);
+        insertRes = await insertRow(baseRow);
+      }
+    }
 
     if (!insertRes.ok) {
       const errText = await insertRes.text();
