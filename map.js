@@ -115,6 +115,22 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!e.target.closest(".search-autocomplete")) hideSuggestions();
   });
 
+  // Leerzustand: einmal weggeklickt bleibt er weg, bis der Nutzer aktiv
+  // etwas an den Filtern ändert oder neu sucht.
+  const closeEmptyBtn = document.getElementById("closeEmptyStateBtn");
+  if (closeEmptyBtn) {
+    closeEmptyBtn.addEventListener("click", () => {
+      emptyStateDismissed = true;
+      const box = document.getElementById("emptyState");
+      if (box) box.hidden = true;
+    });
+  }
+
+  ["heightFilter", "typeFilter", "radiusFilter", "verifiedOnlyToggle", "showAllPoolsToggle"].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener("change", () => { emptyStateDismissed = false; });
+  });
+
   // Leerzustand: Filter zurücksetzen
   const resetBtn = document.getElementById("resetFiltersBtn");
   if (resetBtn) {
@@ -508,8 +524,10 @@ function renderGraffitiTitle(text) {
     span.className = "g-letter";
     span.textContent = char === " " ? "\u00A0" : char;
     
+    // Relative Einheit statt fester Pixel: so wächst der Schriftzug auf
+    // großen Bildschirmen automatisch mit (siehe Media-Queries im CSS).
     const size = fontSizes[index % fontSizes.length];
-    span.style.fontSize = `${size}px`;
+    span.style.fontSize = `${(size / 16).toFixed(3)}em`;
     
     const rotate = (index % 2 === 0 ? 3 : -3);
     span.style.transform = `rotate(${rotate}deg)`;
@@ -1071,6 +1089,7 @@ async function executeSearch() {
   const query = input.value.trim();
 
   hideSuggestions();
+  emptyStateDismissed = false;
 
   if (!query) {
     resetSearchCenterState();
@@ -1258,13 +1277,17 @@ function resetTurnstile(widgetContainerId) {
 // ==========================================
 // Erklärt konkret, WARUM nichts zu sehen ist, statt den Nutzer vor einer
 // leeren Karte im Unklaren zu lassen.
+let emptyStateDismissed = false;
+
 function updateEmptyState(count, filters) {
   const box = document.getElementById("emptyState");
   const text = document.getElementById("emptyStateText");
   const resetBtn = document.getElementById("resetFiltersBtn");
   if (!box) return;
 
-  if (count > 0 || allSpots.length === 0) {
+  // Nie anzeigen, während der Nutzer gerade einen Standort auf der Karte
+  // markiert – der Hinweis würde dabei nur im Weg stehen.
+  if (count > 0 || allSpots.length === 0 || emptyStateDismissed || isPickingOnMap) {
     box.hidden = true;
     return;
   }

@@ -2259,23 +2259,29 @@ input, textarea, select, .modal-field, .welcome-body, .sheet-content {
 
 .empty-state {
 
+  /* Bewusst NICHT in der Kartenmitte: dort klickt der Nutzer, um einen Spot
+     zu setzen. Der Hinweis sitzt jetzt schlank unter dem Suchpanel. */
   position: absolute;
 
-  top: 50%;
+  top: 16px;
+
+  top: calc(16px + env(safe-area-inset-top));
 
   left: 50%;
 
-  transform: translate(-50%, -50%);
+  transform: translateX(-50%);
+
+  margin-top: 128px;
 
   z-index: 900;
 
-  width: calc(100% - 48px);
+  width: calc(100% - 24px);
 
-  max-width: 320px;
+  max-width: 420px;
 
-  padding: 18px 20px;
+  padding: 12px 34px 12px 16px;
 
-  text-align: center;
+  text-align: left;
 
   background: rgba(15, 23, 42, 0.94);
 
@@ -2502,4 +2508,155 @@ input, textarea, select, .modal-field, .welcome-body, .sheet-content {
 
   color: #ffffff !important;
 
+}
+
+
+/* Leerzustand: Schließen-Knopf & kompaktere Darstellung */
+.empty-state-close {
+
+  position: absolute;
+
+  top: 6px;
+
+  right: 6px;
+
+  width: 30px;
+
+  height: 30px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  background: transparent;
+
+  border: none;
+
+  color: rgba(255, 255, 255, 0.55);
+
+  font-size: 22px;
+
+  line-height: 1;
+
+  cursor: pointer;
+
+  border-radius: 8px;
+
+}
+
+.empty-state-close:hover {
+
+  background: rgba(255, 255, 255, 0.1);
+
+  color: #fff;
+
+}
+
+.empty-state .empty-state-title {
+
+  font-size: 13.5px;
+
+  margin-bottom: 3px;
+
+}
+
+.empty-state .empty-state-text {
+
+  font-size: 12px;
+
+  margin-bottom: 0;
+
+}
+
+.empty-state .empty-state-btn {
+
+  margin-top: 9px;
+
+  min-height: 36px;
+
+  padding: 6px 14px;
+
+  font-size: 12px;
+
+}
+
+.empty-state .empty-state-btn[hidden] { display: none; }
+
+
+/* ==========================================
+   DESKTOP-SKALIERUNG DES CTA-BANNERS
+   ========================================== */
+/* Basis für die relativen Buchstabengrößen des Graffiti-Schriftzugs */
+.arcade-title {
+
+  font-size: 16px;
+
+}
+
+/* Ab Tablet spürbar größer */
+@media (min-width: 700px) {
+
+  .arcade-cta-card {
+
+    max-width: 560px;
+
+    padding: 14px 20px;
+
+    gap: 14px;
+
+  }
+
+  .arcade-title { font-size: 19px; }
+
+  .arcade-sub { font-size: 12.5px; }
+
+  .arcade-btn-glow {
+
+    font-size: 14px;
+
+    padding: 11px 18px;
+
+  }
+}
+
+/* Große Monitore: noch einmal deutlich größer, ohne aufdringlich zu werden */
+@media (min-width: 1200px) {
+
+  .arcade-cta-card {
+
+    max-width: 660px;
+
+    padding: 18px 26px;
+
+    bottom: 32px;
+
+  }
+
+  .arcade-title { font-size: 23px; }
+
+  .arcade-sub { font-size: 14px; }
+
+  .arcade-btn-glow {
+
+    font-size: 16px;
+
+    padding: 13px 24px;
+
+    letter-spacing: 0.8px;
+
+  }
+}
+
+/* Sehr große / hochauflösende Bildschirme */
+@media (min-width: 1800px) {
+
+  .arcade-cta-card { max-width: 760px; }
+
+  .arcade-title { font-size: 27px; }
+
+  .arcade-sub { font-size: 15.5px; }
+
+  .arcade-btn-glow { font-size: 18px; }
 }

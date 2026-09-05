@@ -216,10 +216,11 @@
     </div>
   </div>
 
-  <!-- Leerzustand: erscheint, wenn keine Spots im Ausschnitt liegen -->
+  <!-- Leerzustand: schlanker Hinweis unter der Suche, jederzeit wegklickbar -->
   <div id="emptyState" class="empty-state" hidden role="status">
+    <button type="button" id="closeEmptyStateBtn" class="empty-state-close" aria-label="Hinweis schließen">&times;</button>
     <p class="empty-state-title">Keine Spots in diesem Bereich</p>
-    <p class="empty-state-text" id="emptyStateText">Zieh die Karte, vergrößere den Umkreis oder setze die Filter zurück.</p>
+    <p class="empty-state-text" id="emptyStateText">Zieh die Karte weiter oder vergrößere den Umkreis.</p>
     <button type="button" id="resetFiltersBtn" class="empty-state-btn">Filter zurücksetzen</button>
   </div>
 
