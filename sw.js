@@ -11,7 +11,7 @@
 //  - Turnstile / API / Supabase    -> NIE anfassen (Captcha + Live-Daten).
 // ==========================================
 
-const CACHE_VERSION = 'v5';
+const CACHE_VERSION = 'v6';
 const SHELL_CACHE = `sprungbereich-shell-${CACHE_VERSION}`;
 const ASSET_CACHE = `sprungbereich-assets-${CACHE_VERSION}`;
 const TILE_CACHE  = `sprungbereich-tiles-${CACHE_VERSION}`;
@@ -127,7 +127,29 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
-  // --- 3. Restliche Assets: Stale-While-Revalidate ---
+  // --- 3a. Eigener App-Code (JS/CSS): NETWORK-FIRST ---
+  // Vorher wurde zuerst der Cache ausgeliefert. Folge: Nach einem Deploy sah
+  // der Nutzer weiterhin die alte Version – Änderungen kamen erst beim
+  // übernächsten Aufruf an. Jetzt zählt immer die frische Datei, der Cache
+  // dient nur noch als Offline-Reserve.
+  const isOwnCode = url.origin === self.location.origin &&
+                    /\.(js|css)$/.test(url.pathname);
+
+  if (isOwnCode) {
+    e.respondWith((async () => {
+      const cache = await caches.open(ASSET_CACHE);
+      try {
+        const fresh = await fetch(request, { cache: 'no-cache' });
+        if (fresh && fresh.ok) cache.put(request, fresh.clone());
+        return fresh;
+      } catch {
+        return (await cache.match(request)) || Response.error();
+      }
+    })());
+    return;
+  }
+
+  // --- 3b. Übrige Assets (Fonts, Bibliotheken, Bilder): Stale-While-Revalidate ---
   e.respondWith((async () => {
     const cache = await caches.open(ASSET_CACHE);
     const cached = await cache.match(request);

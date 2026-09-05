@@ -375,14 +375,36 @@ function removeTempMarker() {
 
 async function loadSpotsFromSupabase() {
   try {
-    const { data, error } = await supabaseClient
-      .from('Spots')
-      .select('*');
+    // WICHTIG: Supabase liefert pro Anfrage höchstens 1.000 Zeilen.
+    // Ohne Blättern fehlten dadurch alle Spots ab dem 1001. Eintrag –
+    // also ausgerechnet jeder neu hinzugefügte Spot (höchste ID).
+    const PAGE_SIZE = 1000;
+    let data = [];
+    let from = 0;
 
-    if (error) {
-      console.error("Fehler beim Laden aus Supabase:", error);
-      return;
+    while (true) {
+      const { data: page, error } = await supabaseClient
+        .from('Spots')
+        .select('*')
+        .order('id', { ascending: true })
+        .range(from, from + PAGE_SIZE - 1);
+
+      if (error) {
+        console.error("Fehler beim Laden aus Supabase:", error);
+        if (data.length === 0) return;   // gar nichts geladen -> abbrechen
+        break;                            // Teilergebnis trotzdem anzeigen
+      }
+
+      if (!page || page.length === 0) break;
+
+      data = data.concat(page);
+      if (page.length < PAGE_SIZE) break; // letzte Seite erreicht
+      from += PAGE_SIZE;
+
+      if (from > 50000) break;            // Sicherheitsnetz gegen Endlosschleife
     }
+
+    console.info(`Sprungbereich: ${data.length} Spots geladen.`);
 
     allSpots = data.map(spot => ({
       id: spot.id,
