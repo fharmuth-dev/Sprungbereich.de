@@ -2559,3 +2559,136 @@ input, textarea, select, .modal-field, .welcome-body, .sheet-content {
 
   #legendUnknownItem { display: none !important; }
 }
+
+
+/* ==========================================
+   KARTENQUELLEN-ANGABE: unauffällig unter den CTA-Banner
+   ========================================== */
+/* Vorher saß der Leaflet-Hinweis mitten im Kartenbild und lenkte ab.
+   Jetzt liegt er als schmale Zeile im freien Bereich unterhalb des
+   "Spot eintragen"-Banners – Pflichtangabe bleibt erhalten, stört aber nicht.
+   position: fixed löst ihn aus dem Leaflet-Container, damit die Zoom-Buttons
+   an ihrer bisherigen Stelle über dem Banner bleiben. */
+.leaflet-control-attribution {
+
+  position: fixed !important;
+
+  bottom: calc(4px + env(safe-area-inset-bottom)) !important;
+
+  left: 50% !important;
+
+  transform: translateX(-50%);
+
+  margin: 0 !important;
+
+  max-width: 94vw;
+
+  white-space: nowrap;
+
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+
+  background: transparent !important;
+
+  -webkit-backdrop-filter: none;
+
+  backdrop-filter: none;
+
+  border-radius: 0;
+
+  padding: 0 !important;
+
+  font-size: 8.5px !important;
+
+  line-height: 1.2;
+
+  color: rgba(255, 255, 255, 0.32) !important;
+
+  pointer-events: auto;
+
+  z-index: 500;
+
+}
+
+.leaflet-control-attribution a {
+
+  color: rgba(255, 255, 255, 0.42) !important;
+
+  text-decoration: none;
+
+}
+
+/* Auf größeren Bildschirmen ist mehr Platz – dort etwas lesbarer */
+@media (min-width: 700px) {
+
+  .leaflet-control-attribution {
+
+    font-size: 10px !important;
+
+    color: rgba(255, 255, 255, 0.4) !important;
+
+  }
+}
+
+
+/* ==========================================
+   VISUELLE RÜCKMELDUNG: Standort & Aktualisieren
+   ========================================== */
+
+/* GPS-Button pulsiert grün, solange ein Standort aktiv gesetzt ist */
+@keyframes pulseLocate {
+
+  0%   { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.75); }
+
+  70%  { box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); }
+
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+#locateBtn.is-locating,
+#locateBtn.is-location-active {
+
+  animation: pulseLocate 1.6s ease-out infinite;
+
+}
+
+/* Aktiver Standort zusätzlich durch helleren Rand kenntlich machen */
+#locateBtn.is-location-active {
+
+  outline: 2px solid rgba(110, 231, 183, 0.9);
+
+  outline-offset: 1px;
+
+}
+
+/* Aktualisieren-Button pulsiert blau, solange nachgeladen wird */
+@keyframes pulseRefresh {
+
+  0%   { box-shadow: 0 0 0 0 rgba(0, 242, 254, 0.7); }
+
+  70%  { box-shadow: 0 0 0 12px rgba(0, 242, 254, 0); }
+
+  100% { box-shadow: 0 0 0 0 rgba(0, 242, 254, 0); }
+}
+
+#refreshSpotsBtn.is-spinning {
+
+  animation: pulseRefresh 1.2s ease-out infinite;
+
+  border-color: rgba(0, 242, 254, 0.7) !important;
+
+  color: #00f2fe;
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  #locateBtn.is-locating,
+  #locateBtn.is-location-active,
+  #refreshSpotsBtn.is-spinning {
+
+    animation: none;
+
+  }
+}

@@ -2,7 +2,7 @@
 // Sichtbar im Filter-Bereich der App und in der Browser-Konsole.
 // Damit lässt sich sofort erkennen, ob der Browser wirklich die neueste
 // Version geladen hat oder noch eine zwischengespeicherte alte.
-const APP_VERSION = "2026-09-06-b";
+const APP_VERSION = "2026-09-06-c";
 console.info(`%cSprungbereich.de – Version ${APP_VERSION}`, "background:#00f2fe;color:#0b1120;padding:2px 6px;border-radius:3px;font-weight:bold");
 
 // === SUPABASE ZUGANGSDATEN ===
@@ -81,6 +81,10 @@ document.addEventListener("DOMContentLoaded", () => {
     applyAllFilters();
   });
 
+  // Sobald der Nutzer die Karte selbst bewegt, ist "mein Standort" nicht
+  // mehr der Bezugspunkt -> grünen Puls beenden.
+  map.on("dragstart", clearLocationActiveState);
+
   // Event Listener für Filter
   document.getElementById("heightFilter").addEventListener("change", applyAllFilters);
   document.getElementById("typeFilter").addEventListener("change", applyAllFilters);
@@ -140,14 +144,23 @@ document.addEventListener("DOMContentLoaded", () => {
       if (refreshBtn.classList.contains("is-spinning")) return; // Doppelklick abfangen
       refreshBtn.classList.add("is-spinning");
       const previousCount = allSpots.length;
+      const startedAt = Date.now();
 
       await loadSpotsFromSupabase();
 
-      refreshBtn.classList.remove("is-spinning");
-      const diff = allSpots.length - previousCount;
-      showShareToast(
-        diff > 0 ? `${diff} neue Spot${diff === 1 ? "" : "s"} geladen ✓` : "Alles aktuell ✓"
-      );
+      // Mindestens 3 Sekunden sichtbar pulsieren lassen. Ohne das wäre die
+      // Rückmeldung bei schnellem Netz nur ein kurzes Aufblitzen, das der
+      // Nutzer leicht übersieht.
+      const elapsed = Date.now() - startedAt;
+      const remaining = Math.max(0, 3000 - elapsed);
+
+      setTimeout(() => {
+        refreshBtn.classList.remove("is-spinning");
+        const diff = allSpots.length - previousCount;
+        showShareToast(
+          diff > 0 ? `${diff} neue Spot${diff === 1 ? "" : "s"} geladen ✓` : "Alles aktuell ✓"
+        );
+      }, remaining);
     });
   }
 
@@ -329,6 +342,13 @@ function isDesktopDevice() {
   return hasFinePointer && hasHover && isWide && !isMobileUA;
 }
 
+// Beendet die visuelle "Standort aktiv"-Anzeige, sobald der Nutzer eine
+// andere Aktion ausführt (Karte verschieben, suchen, Fenster öffnen ...).
+function clearLocationActiveState() {
+  const btn = document.getElementById("locateBtn");
+  if (btn) btn.classList.remove("is-location-active");
+}
+
 function getUserLocation() {
   const locateBtn = document.getElementById("locateBtn");
 
@@ -346,6 +366,8 @@ function getUserLocation() {
   if (locateBtn) {
     locateBtn.style.opacity = "0.5";
     locateBtn.disabled = true;
+    locateBtn.classList.add("is-locating");           // pulsiert während der Suche
+    locateBtn.classList.remove("is-location-active");
   }
 
   let finished = false;
@@ -356,6 +378,7 @@ function getUserLocation() {
     if (locateBtn) {
       locateBtn.style.opacity = "1";
       locateBtn.disabled = false;
+      locateBtn.classList.remove("is-locating");
     }
   };
 
@@ -372,6 +395,10 @@ function getUserLocation() {
     map.setView([latitude, longitude], 12);
     applyAllFilters();
     showShareToast("Standort gefunden ✓");
+
+    // Dauerhafter grüner Puls signalisiert: "dein Standort ist aktiv".
+    // Wird zurückgesetzt, sobald der Nutzer etwas anderes tut.
+    if (locateBtn) locateBtn.classList.add("is-location-active");
   };
 
   const onError = (error, isFallbackAttempt) => {
@@ -835,6 +862,7 @@ function applyAllFilters() {
 }
 
 function openAddModal() {
+  clearLocationActiveState();
   document.getElementById("addSpotModal").classList.add("active");
   resetTurnstile("addSpotTurnstile");
 }
@@ -1044,6 +1072,8 @@ function renderSpotFacts(spot) {
 }
 
 function openBottomSheet(spot) {
+  clearLocationActiveState();
+
   activeSpotForReport = spot;
 
   const sheet = document.getElementById("bottomSheet");
@@ -1279,6 +1309,7 @@ async function executeSearch() {
   const query = input.value.trim();
 
   hideSuggestions();
+  clearLocationActiveState();
 
   if (!query) {
     resetSearchCenterState();
