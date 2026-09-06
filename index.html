@@ -181,10 +181,12 @@
         <span class="toggle-text">Nur verifizierte Spots</span>
       </label>
 
-      <label class="toggle-container drawer-toggle" id="showAllPoolsRow" title="Zeigt zusätzlich alle bekannten Bäder an – unabhängig davon, ob dort ein Sprungbereich existiert.">
+      <!-- Bonus-Layer: nur am Desktop. Auf Mobilgeräten würden über 2.500
+           zusätzliche Kartenmarker schwächere Handys zum Absturz bringen. -->
+      <label class="toggle-container drawer-toggle desktop-only" id="showAllPoolsRow" hidden title="Zeigt zusätzlich alle bekannten Bäder an – unabhängig davon, ob dort ein Sprungbereich existiert.">
         <input type="checkbox" id="showAllPoolsToggle">
         <span class="toggle-custom"></span>
-        <span class="toggle-text">Alle Bäder anzeigen <span style="opacity: 0.6; font-weight: 400;">(Beta)</span></span>
+        <span class="toggle-text">Alle Bäder anzeigen <span style="opacity: 0.6; font-weight: 400;">(Beta · nur am PC)</span></span>
       </label>
 
       <!-- Farb-Legende -->
@@ -213,6 +215,7 @@
 
       <!-- Rechtliches & Installation -->
       <div class="legal-links">
+        <span id="appVersion" style="opacity:0.4; font-size:10px; width:100%; order:99;"></span>
         <a href="#" id="openInstallBtn">📲 App installieren</a>
         <a href="#" id="openImpressumBtn">Impressum</a>
         <a href="#" id="openPrivacyBtn">Datenschutz</a>

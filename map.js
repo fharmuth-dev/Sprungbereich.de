@@ -1,3 +1,10 @@
+// === VERSIONS-KENNUNG ===
+// Sichtbar im Filter-Bereich der App und in der Browser-Konsole.
+// Damit lässt sich sofort erkennen, ob der Browser wirklich die neueste
+// Version geladen hat oder noch eine zwischengespeicherte alte.
+const APP_VERSION = "2026-09-06-b";
+console.info(`%cSprungbereich.de – Version ${APP_VERSION}`, "background:#00f2fe;color:#0b1120;padding:2px 6px;border-radius:3px;font-weight:bold");
+
 // === SUPABASE ZUGANGSDATEN ===
 const SUPABASE_URL = "https://bmngqythtalsddqtfuib.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_TPwfBJvsktOEDPZmQAcG0w_AnYnaQeW";
@@ -18,6 +25,11 @@ let isPickingOnMap = false;
 let activeSpotForReport = null; 
 
 let allSpots = [];
+
+// Gezielt gesuchter Spot: wird IMMER angezeigt, auch wenn er sonst durch den
+// Bonus-Layer-Filter ausgeblendet wäre. So findet man am Handy auch ein Bad
+// ohne Höhenangabe per Namenssuche – ohne alle 2.500 Marker laden zu müssen.
+let focusedSpotId = null;
 
 document.addEventListener("DOMContentLoaded", () => {
   // Loading Screen nach Animation ausblenden
@@ -74,9 +86,25 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("typeFilter").addEventListener("change", applyAllFilters);
   document.getElementById("verifiedOnlyToggle").addEventListener("change", applyAllFilters);
 
-  // Bonus-Layer "Alle bekannten Bäder": Legende-Eintrag ein-/ausblenden + neu filtern
+  // Bonus-Layer "Alle bekannten Bäder": bewusst NUR am Desktop verfügbar.
+  // Über 2.500 zusätzliche Kartenmarker überfordern schwächere Smartphones
+  // (Browser-Absturz). Am PC ist die Rechenleistung dafür in aller Regel da.
   const showAllPoolsToggle = document.getElementById("showAllPoolsToggle");
+  const showAllPoolsRow = document.getElementById("showAllPoolsRow");
   const legendUnknownItem = document.getElementById("legendUnknownItem");
+
+  if (showAllPoolsRow) {
+    if (isDesktopDevice()) {
+      showAllPoolsRow.hidden = false;
+    } else {
+      // Auf Mobilgeräten sicherheitshalber auch deaktiviert erzwingen,
+      // falls der Schalter durch einen früheren Zustand aktiv wäre.
+      showAllPoolsRow.hidden = true;
+      if (showAllPoolsToggle) showAllPoolsToggle.checked = false;
+      if (legendUnknownItem) legendUnknownItem.style.display = "none";
+    }
+  }
+
   if (showAllPoolsToggle) {
     showAllPoolsToggle.addEventListener("change", () => {
       if (legendUnknownItem) {
@@ -98,6 +126,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // GPS-Button: Standort ermitteln
   const locateBtnEl = document.getElementById("locateBtn");
   if (locateBtnEl) locateBtnEl.addEventListener("click", getUserLocation);
+
+  // Versionsnummer sichtbar machen (Diagnose bei Cache-Problemen)
+  const versionEl = document.getElementById("appVersion");
+  if (versionEl) versionEl.textContent = `v ${APP_VERSION}`;
 
   // Manuelles Nachladen der Spot-Daten. Wichtig für Nutzer, die den Tab
   // längere Zeit offen lassen und zwischenzeitlich neue Spots erwarten,
@@ -283,6 +315,18 @@ function resetSearchCenterState() {
     const searchInput = document.getElementById("searchInput");
     if (searchInput) searchInput.value = "";
   }
+}
+
+// Unterscheidet Desktop von Mobilgerät. Bewusst mehrstufig geprüft, damit
+// kein leistungsschwaches Gerät versehentlich als Desktop eingestuft wird:
+// Ein echter Desktop hat einen präzisen Zeiger (Maus) UND ein breites Fenster.
+function isDesktopDevice() {
+  const hasFinePointer = window.matchMedia("(pointer: fine)").matches;
+  const hasHover = window.matchMedia("(hover: hover)").matches;
+  const isWide = window.innerWidth >= 1024;
+  const isMobileUA = /Android|iPhone|iPad|iPod|Mobile|Tablet/i.test(navigator.userAgent);
+
+  return hasFinePointer && hasHover && isWide && !isMobileUA;
 }
 
 function getUserLocation() {
@@ -724,7 +768,8 @@ function applyAllFilters() {
     // Bonus-Layer: NUR automatisch importierte OSM-Bäder ohne Sprung-Info
     // verstecken. Von Menschen eingereichte Community-Spots bleiben immer
     // sichtbar – auch wenn beim Eintragen keine Höhe angegeben wurde.
-    if (hasUnknownHeight(spot) && spot.source === "osm" && !showAllPools) {
+    const isFocused = focusedSpotId !== null && String(spot.id) === String(focusedSpotId);
+    if (hasUnknownHeight(spot) && spot.source === "osm" && !showAllPools && !isFocused) {
       return false;
     }
 
@@ -1198,8 +1243,13 @@ function focusSpot(spot) {
 
   // Falls der Spot durch aktive Filter unsichtbar wäre, Filter passend lösen,
   // damit der Nutzer nicht auf eine leere Karte schaut.
+  // ABER: Auf Mobilgeräten wird der Bonus-Layer NICHT automatisch aktiviert –
+  // das würde genau den Absturz auslösen, den wir dort vermeiden wollen.
+  // Diesen Spot immer sichtbar machen, unabhängig vom Bonus-Layer
+  focusedSpotId = spot.id;
+
   const showAll = document.getElementById("showAllPoolsToggle");
-  if (hasUnknownHeight(spot) && showAll && !showAll.checked) {
+  if (hasUnknownHeight(spot) && showAll && !showAll.checked && isDesktopDevice()) {
     showAll.checked = true;
     showAll.dispatchEvent(new Event("change"));
   }
