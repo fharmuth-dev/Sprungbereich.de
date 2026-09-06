@@ -1,0 +1,9 @@
+# Cloudflare Pages Build-Konfiguration
+# Diese Datei sagt Cloudflare, welcher Build-Befehl ausgeführt werden soll
+# und welcher Ordner danach deployed wird.
+
+name = "sprungbereich-de"
+pages_build_output_dir = "dist"
+
+[build]
+command = "npm install && node --experimental-vm-modules build.js"

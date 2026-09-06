@@ -10,3 +10,8 @@ tools/import-osm-pools/node_modules/
 # System-Dateien
 .DS_Store
 Thumbs.db
+
+# Build-Output – wird von Cloudflare generiert, nicht einchecken
+dist/
+node_modules/
+package-lock.json
