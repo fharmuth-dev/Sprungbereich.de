@@ -95,6 +95,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("searchBtn").addEventListener("click", executeSearch);
 
+  // GPS-Button: Standort ermitteln
+  const locateBtnEl = document.getElementById("locateBtn");
+  if (locateBtnEl) locateBtnEl.addEventListener("click", getUserLocation);
+
   // Manuelles Nachladen der Spot-Daten. Wichtig für Nutzer, die den Tab
   // längere Zeit offen lassen und zwischenzeitlich neue Spots erwarten,
   // ohne extra die ganze Seite neu laden zu müssen.
