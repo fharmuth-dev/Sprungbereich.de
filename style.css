@@ -2518,3 +2518,19 @@ input, textarea, select, .modal-field, .welcome-body, .sheet-content {
   #refreshSpotsBtn.is-spinning svg { animation: none; }
 
 }
+
+
+/* Lade-Rückmeldung am Such-Button während der Ortssuche (Nominatim-Fallback) */
+#searchBtn.is-loading svg {
+
+  animation: refreshSpin 0.8s linear infinite;
+
+}
+
+#searchBtn.is-loading {
+
+  pointer-events: none;
+
+  opacity: 0.7;
+
+}

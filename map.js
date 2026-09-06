@@ -890,6 +890,43 @@ async function handleAddSpotSubmit(e) {
   }
 }
 
+// Zeigt Wassertiefe und Sprung-Erlaubnis als gut sichtbare Chips im
+// Detail-Panel – die zwei Angaben, die vor Ort wirklich über einen Sprung
+// entscheiden. (War versehentlich beim Entfernen des Leerzustand-Hinweises
+// mit gelöscht worden, obwohl völlig unabhängig davon.)
+function renderSpotFacts(spot) {
+  const box = document.getElementById("spotFacts");
+  if (!box) return;
+
+  const chips = [];
+
+  const permissionMap = {
+    erlaubt:  { label: "Springen erlaubt",         cls: "is-good",   icon: "✅" },
+    aufsicht: { label: "Nur mit Aufsicht/Zeiten",  cls: "is-warn",   icon: "👮" },
+    geduldet: { label: "Geduldet – eigene Gefahr", cls: "is-warn",   icon: "⚠️" },
+    verboten: { label: "Springen verboten",        cls: "is-danger", icon: "⛔" }
+  };
+
+  const perm = permissionMap[spot.jumpAllowed];
+  if (perm) chips.push({ text: `${perm.icon} ${perm.label}`, cls: perm.cls });
+
+  if (spot.waterDepth) {
+    const shallow = spot.waterDepth === "unter 2 m";
+    chips.push({ text: `🌊 Tiefe: ${spot.waterDepth}`, cls: shallow ? "is-danger" : "" });
+  }
+
+  if (chips.length === 0) { box.hidden = true; box.innerHTML = ""; return; }
+
+  box.innerHTML = "";
+  chips.forEach(c => {
+    const el = document.createElement("span");
+    el.className = `spot-fact ${c.cls}`.trim();
+    el.textContent = c.text;
+    box.appendChild(el);
+  });
+  box.hidden = false;
+}
+
 function openBottomSheet(spot) {
   activeSpotForReport = spot;
 
