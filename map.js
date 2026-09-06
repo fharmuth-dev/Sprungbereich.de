@@ -289,30 +289,97 @@ function getUserLocation() {
   const locateBtn = document.getElementById("locateBtn");
 
   if (!navigator.geolocation) {
-    alert("Geolocation wird von deinem Browser nicht unterstützt.");
+    showShareToast("Standortermittlung wird von diesem Browser nicht unterstützt.");
     return;
   }
 
-  if (locateBtn) locateBtn.style.opacity = "0.5";
+  // Standortermittlung braucht eine sichere Verbindung (HTTPS)
+  if (!window.isSecureContext) {
+    showShareToast("Standort nur über eine sichere HTTPS-Verbindung möglich.");
+    return;
+  }
+
+  if (locateBtn) {
+    locateBtn.style.opacity = "0.5";
+    locateBtn.disabled = true;
+  }
+
+  let finished = false;
+
+  const finish = () => {
+    if (finished) return;
+    finished = true;
+    if (locateBtn) {
+      locateBtn.style.opacity = "1";
+      locateBtn.disabled = false;
+    }
+  };
+
+  const onSuccess = (position) => {
+    finish();
+    const { latitude, longitude } = position.coords;
+
+    currentSearchCenter = { lat: latitude, lng: longitude };
+
+    const searchInput = document.getElementById("searchInput");
+    if (searchInput) searchInput.value = "Mein Standort";
+
+    updateRadiusAndPin(latitude, longitude);
+    map.setView([latitude, longitude], 12);
+    applyAllFilters();
+    showShareToast("Standort gefunden ✓");
+  };
+
+  const onError = (error, isFallbackAttempt) => {
+    // Erster Versuch mit hoher Genauigkeit fehlgeschlagen (oft im Gebäude
+    // oder bei schlechtem Empfang): mit gröberer Ortung erneut versuchen,
+    // statt den Nutzer ohne Ergebnis stehen zu lassen.
+    if (!isFallbackAttempt && error.code === error.TIMEOUT) {
+      navigator.geolocation.getCurrentPosition(
+        onSuccess,
+        (err) => onError(err, true),
+        { enableHighAccuracy: false, timeout: 10000, maximumAge: 300000 }
+      );
+      return;
+    }
+
+    finish();
+
+    // Konkrete statt generischer Meldung – der Nutzer soll wissen, was zu tun ist
+    let message;
+    switch (error.code) {
+      case error.PERMISSION_DENIED:
+        message = "Standortzugriff wurde blockiert. Bitte in den Browser-Einstellungen für diese Seite erlauben.";
+        break;
+      case error.POSITION_UNAVAILABLE:
+        message = "Standort aktuell nicht verfügbar. Ist GPS/Ortungsdienste aktiviert?";
+        break;
+      case error.TIMEOUT:
+        message = "Standortsuche hat zu lange gedauert. Bitte im Freien erneut versuchen.";
+        break;
+      default:
+        message = "Standort konnte nicht ermittelt werden.";
+    }
+    showShareToast(message);
+  };
+
+  // Sicherheitsnetz: Falls das Gerät gar keinen Callback liefert (kommt auf
+  // manchen Android-Browsern vor), den Button nach 20 s wieder freigeben.
+  setTimeout(() => {
+    if (!finished) {
+      finish();
+      showShareToast("Standortsuche abgebrochen. Bitte erneut versuchen.");
+    }
+  }, 20000);
 
   navigator.geolocation.getCurrentPosition(
-    (position) => {
-      if (locateBtn) locateBtn.style.opacity = "1";
-      const { latitude, longitude } = position.coords;
-      
-      currentSearchCenter = { lat: latitude, lng: longitude };
-      
-      const searchInput = document.getElementById("searchInput");
-      if (searchInput) searchInput.value = "Mein Standort";
-      
-      updateRadiusAndPin(latitude, longitude);
-      applyAllFilters();
-    },
-    (error) => {
-      if (locateBtn) locateBtn.style.opacity = "1";
-      alert("Standort konnte nicht ermittelt werden.");
-    },
-    { enableHighAccuracy: true }
+    onSuccess,
+    (err) => onError(err, false),
+    {
+      enableHighAccuracy: true,
+      timeout: 8000,        // vorher unbegrenzt -> Button blieb ewig hängen
+      maximumAge: 60000     // bis zu 1 Min. alte Position akzeptieren (schneller)
+    }
   );
 }
 
