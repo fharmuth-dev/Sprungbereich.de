@@ -11,7 +11,7 @@
 //  - Turnstile / API / Supabase    -> NIE anfassen (Captcha + Live-Daten).
 // ==========================================
 
-const CACHE_VERSION = 'v6';
+const CACHE_VERSION = 'v7';
 const SHELL_CACHE = `sprungbereich-shell-${CACHE_VERSION}`;
 const ASSET_CACHE = `sprungbereich-assets-${CACHE_VERSION}`;
 const TILE_CACHE  = `sprungbereich-tiles-${CACHE_VERSION}`;

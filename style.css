@@ -2490,3 +2490,31 @@ input, textarea, select, .modal-field, .welcome-body, .sheet-content {
 
   .arcade-btn-glow { font-size: 18px; }
 }
+
+
+/* Dreh-Animation für den "Neueste Spots laden"-Button */
+#refreshSpotsBtn svg {
+
+  transition: transform 0.3s ease;
+
+}
+
+#refreshSpotsBtn.is-spinning svg {
+
+  animation: refreshSpin 0.8s linear infinite;
+
+}
+
+@keyframes refreshSpin {
+
+  from { transform: rotate(0deg); }
+
+  to   { transform: rotate(360deg); }
+
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  #refreshSpotsBtn.is-spinning svg { animation: none; }
+
+}

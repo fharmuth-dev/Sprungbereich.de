@@ -95,6 +95,26 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("searchBtn").addEventListener("click", executeSearch);
 
+  // Manuelles Nachladen der Spot-Daten. Wichtig für Nutzer, die den Tab
+  // längere Zeit offen lassen und zwischenzeitlich neue Spots erwarten,
+  // ohne extra die ganze Seite neu laden zu müssen.
+  const refreshBtn = document.getElementById("refreshSpotsBtn");
+  if (refreshBtn) {
+    refreshBtn.addEventListener("click", async () => {
+      if (refreshBtn.classList.contains("is-spinning")) return; // Doppelklick abfangen
+      refreshBtn.classList.add("is-spinning");
+      const previousCount = allSpots.length;
+
+      await loadSpotsFromSupabase();
+
+      refreshBtn.classList.remove("is-spinning");
+      const diff = allSpots.length - previousCount;
+      showShareToast(
+        diff > 0 ? `${diff} neue Spot${diff === 1 ? "" : "s"} geladen ✓` : "Alles aktuell ✓"
+      );
+    });
+  }
+
   // Live-Vorschläge beim Tippen (entprellt, damit es auf dem Handy flüssig bleibt)
   const searchInputEl = document.getElementById("searchInput");
   if (searchInputEl) {
@@ -171,11 +191,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const reportForm = document.getElementById("reportSpotForm");
   if (reportForm) reportForm.addEventListener("submit", handleReportSubmit);
 
+  // Detail-Panel: X-Button schließen (war bisher gar nicht verdrahtet!)
+  const closeSheetBtn = document.getElementById("closeSheetBtn");
+  if (closeSheetBtn) closeSheetBtn.addEventListener("click", () => closeBottomSheet());
+
   // Klick-Logik auf der Karte
   map.on("click", (e) => {
     const sheet = document.getElementById("bottomSheet");
     if (sheet && sheet.classList.contains("active")) {
-      closeBottomSheet(true);
+      closeBottomSheet();
       return;
     }
 
@@ -233,10 +257,7 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   window.addEventListener("popstate", () => {
-    const sheet = document.getElementById("bottomSheet");
-    if (sheet && sheet.classList.contains("active")) {
-      closeBottomSheet(false);
-    }
+    closeBottomSheet();
     closeAddModal();
     closeReportModal();
   });
@@ -659,7 +680,16 @@ function applyAllFilters() {
     return matchHeight && matchType && matchVerified && matchLocation && matchQuery;
   });
 
-  filtered.forEach(spot => {
+  // Zeichenreihenfolge: OSM-Importe zuerst, Community-Spots zuletzt.
+  // Leaflet zeichnet später hinzugefügte Marker sichtbar/klickbar OBEN.
+  // Ohne diese Sortierung konnte ein automatisch importiertes Bad einen an
+  // (fast) derselben Stelle eingetragenen echten Community-Spot verdecken.
+  const drawOrder = [...filtered].sort((a, b) => {
+    const weight = (s) => (s.source === "osm" ? 0 : 1);
+    return weight(a) - weight(b);
+  });
+
+  drawOrder.forEach(spot => {
     const isWildcard = hasWildcardFeature(spot);
     const isUnknown = !isWildcard && hasUnknownHeight(spot);
 
@@ -810,10 +840,43 @@ async function handleAddSpotSubmit(e) {
       alert(result.error || "Fehler beim Speichern des Spots!");
       resetTurnstile("addSpotTurnstile");
     } else {
-      alert("Vielen Dank! Dein Spot wurde eingereicht und wird geprüft.");
+      // Sofort-Anzeige: Der Nutzer soll seinen Spot direkt sehen, ohne auf
+      // den kompletten (bei 2.500+ Einträgen spürbar langsamen) Neu-Abruf
+      // aller Spots zu warten. Verhindert außerdem Doppel-Einreichungen aus
+      // Ungeduld, weil sofort eine sichtbare Bestätigung da ist.
+      const optimisticSpot = {
+        id: `pending-${Date.now()}`, // wird beim nächsten echten Reload ersetzt
+        name: newSpotData.title,
+        city: newSpotData.city,
+        description: newSpotData.description,
+        type: newSpotData.type,
+        height: newSpotData.height,
+        facilities: newSpotData.facilities,
+        images: [],
+        websiteUrl: newSpotData.website_url,
+        jumpAllowed: newSpotData.jump_allowed,
+        waterDepth: newSpotData.water_depth,
+        source: "community",
+        verified: false,
+        status: "pending",
+        lat: newSpotData.latitude,
+        lng: newSpotData.longitude
+      };
+      allSpots.push(optimisticSpot);
+      applyAllFilters();
+      showShareToast("Spot gespeichert – wird geprüft ✓");
+
       closeAddModal();
       document.getElementById("addSpotForm").reset();
       resetTurnstile("addSpotTurnstile");
+
+      // Direkt zum eigenen neuen Pin hinführen und öffnen — die stärkste
+      // mögliche Bestätigung: "Ja, das ist wirklich schon da."
+      map.setView([optimisticSpot.lat, optimisticSpot.lng], 15);
+      setTimeout(() => openBottomSheet(optimisticSpot), 300);
+
+      // Im Hintergrund trotzdem echt nachladen, um mit der Datenbank
+      // (echte ID, evtl. servereitige Korrekturen) abzugleichen.
       loadSpotsFromSupabase();
     }
   } catch (err) {
@@ -968,18 +1031,11 @@ function openBottomSheet(spot) {
   }
 
   sheet.classList.add("active");
-
-  if (!history.state || !history.state.sheetOpen) {
-    history.pushState({ sheetOpen: true }, "");
-  }
 }
 
-function closeBottomSheet(shouldGoBackHistory = true) {
+function closeBottomSheet() {
   const sheet = document.getElementById("bottomSheet");
   if (sheet) sheet.classList.remove("active");
-  if (shouldGoBackHistory && history.state && history.state.sheetOpen) {
-    history.back();
-  }
 }
 
 // ==========================================
